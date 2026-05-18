@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace>TradingPairService.Infrastructure</RootNamespace>
+		<AssemblyName>TradingPairService.Infrastructure</AssemblyName>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\TradingPairService.Application\TradingPairService.Application.csproj" />
+	  <ProjectReference Include="..\TradingPairService.Domain\TradingPairService.Domain.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="GrpcClients\" />
+	  <Folder Include="Messaging\" />
+	  <Folder Include="Persistence\" />
+	  <Folder Include="Repositories\" />
+	  <Folder Include="Services\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Google.Protobuf" Version="3.34.1" />
+	  <PackageReference Include="Grpc.Net.ClientFactory" Version="2.80.0" />
+	  <PackageReference Include="Grpc.Tools" Version="2.80.0">
+	    <PrivateAssets>all</PrivateAssets>
+	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	  </PackageReference>
+	</ItemGroup>
+
+</Project>

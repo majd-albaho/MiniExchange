@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Majd Albaho",
+  "classifications": [ "Web", "Microservice", "Clean Architecture" ],
+  "identity": "Templates.Microservice",
+  "name": "Microservice",
+  "shortName": "micro-service-template",
+  "sourceName": "MicroServiceTemplate",
+  "preferNameDirectory": true
+}
