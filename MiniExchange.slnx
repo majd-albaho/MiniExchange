@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="MiniExchange.Api/MiniExchange.Api.csproj" Id="01b99205-06fa-41e2-b9a6-6e849f328cdd" />
-  <Project Path="MiniExchange.Core/MiniExchange.Core.csproj" Id="3a858765-86d1-451a-b601-0655938dd6c9" />
-  <Project Path="MiniExchange.Test/MiniExchange.Test.csproj" Id="f0361b59-498f-437f-89de-3a0bb635e941" />
-</Solution>
