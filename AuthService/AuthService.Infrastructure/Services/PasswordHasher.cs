@@ -22,11 +22,18 @@ namespace AuthService.Infrastructure.Services
             if (parts.Length != 2)
                 return false;
 
-            var salt = Convert.FromBase64String(parts[0]);
-            var expectedHash = Convert.FromBase64String(parts[1]);
+            try
+            {
+                var salt = Convert.FromBase64String(parts[0]);
+                var expectedHash = Convert.FromBase64String(parts[1]);
 
-            var actualHash = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(password), salt, Iterations, HashAlgorithmName.SHA256, HashSize);
-            return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
+                var actualHash = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(password), salt, Iterations, HashAlgorithmName.SHA256, HashSize);
+                return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
     }
 }
