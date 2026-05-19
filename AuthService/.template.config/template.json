@@ -4,7 +4,7 @@
   "identity": "Microservice Template",
   "name": "Microservice",
   "shortName": "micro-service-template",
-  "sourceName": "TradingPairService",
+  "sourceName": "AuthService",
   "preferNameDirectory": true,
   "sources": [
     {
