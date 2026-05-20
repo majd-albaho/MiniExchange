@@ -13,7 +13,9 @@ namespace AuthService.Tests.Services
         {
             Id = Guid.NewGuid(),
             Email = "user@test.com",
-            Role = "User"
+            Role = "User",
+            CreatedDate = DateTimeOffset.UtcNow,
+            CreatedBy = "test"
         };
 
         public JwtTokenServiceTests()

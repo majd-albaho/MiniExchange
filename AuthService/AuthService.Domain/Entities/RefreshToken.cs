@@ -1,6 +1,8 @@
-﻿namespace AuthService.Domain.Entities
+﻿using SharedLibrary.Entities;
+
+namespace AuthService.Domain.Entities
 {
-    public class RefreshToken : EntityBase
+    public class RefreshToken : EntityBase<Guid>
     {
         public Guid UserId { get; set; }
         public string Token { get; set; } = string.Empty;
