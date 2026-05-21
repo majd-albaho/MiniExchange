@@ -1,6 +1,6 @@
 using AuthService.Application.Interfaces.Services;
-using AuthService.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
+using SharedLibrary.EventDriven;
 
 namespace AuthService.Application
 {

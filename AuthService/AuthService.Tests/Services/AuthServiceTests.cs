@@ -3,6 +3,7 @@ using AuthService.Application.Interfaces.Repositories;
 using AuthService.Application.Interfaces.Services;
 using AuthService.Domain.Entities;
 using Moq;
+using SharedLibrary.EventDriven;
 
 namespace AuthService.Tests.Services
 {
@@ -12,17 +13,18 @@ namespace AuthService.Tests.Services
         private readonly Mock<IRefreshTokenRepository> _refreshTokenRepoMock = new();
         private readonly Mock<IJwtTokenService> _jwtTokenServiceMock = new();
         private readonly Mock<IPasswordHasher> _passwordHasherMock = new();
+        private readonly Mock<IMessageBroker> _messageBrokerMock = new();
         private readonly Application.Services.AuthService _sut;
 
         private static readonly DateTimeOffset TokenExpiry = DateTimeOffset.UtcNow.AddDays(7);
 
-        public AuthServiceTests()
-        {
+        public AuthServiceTests() {
             _sut = new Application.Services.AuthService(
                 _userRepoMock.Object,
                 _refreshTokenRepoMock.Object,
                 _jwtTokenServiceMock.Object,
-                _passwordHasherMock.Object);
+                _passwordHasherMock.Object,
+                _messageBrokerMock.Object);
 
             // Default token service setup
             _jwtTokenServiceMock.Setup(x => x.GenerateAccessToken(It.IsAny<AuthUser>())).Returns("access-token");
@@ -33,8 +35,7 @@ namespace AuthService.Tests.Services
         // ── Login ────────────────────────────────────────────────────────────────
 
         [Fact]
-        public async Task Login_ValidCredentials_ReturnsAuthResponse()
-        {
+        public async Task Login_ValidCredentials_ReturnsAuthResponse() {
             // Arrange
             var user = BuildUser();
             _userRepoMock.Setup(x => x.GetByEmailAsync(user.Email, default)).ReturnsAsync(user);
@@ -50,8 +51,7 @@ namespace AuthService.Tests.Services
         }
 
         [Fact]
-        public async Task Login_UserNotFound_ThrowsUnauthorizedAccessException()
-        {
+        public async Task Login_UserNotFound_ThrowsUnauthorizedAccessException() {
             // Arrange
             _userRepoMock.Setup(x => x.GetByEmailAsync(It.IsAny<string>(), default)).ReturnsAsync((AuthUser?)null);
 
@@ -61,8 +61,7 @@ namespace AuthService.Tests.Services
         }
 
         [Fact]
-        public async Task Login_WrongPassword_ThrowsUnauthorizedAccessException()
-        {
+        public async Task Login_WrongPassword_ThrowsUnauthorizedAccessException() {
             // Arrange
             var user = BuildUser();
             _userRepoMock.Setup(x => x.GetByEmailAsync(user.Email, default)).ReturnsAsync(user);
@@ -74,8 +73,7 @@ namespace AuthService.Tests.Services
         }
 
         [Fact]
-        public async Task Login_InactiveUser_ThrowsUnauthorizedAccessException()
-        {
+        public async Task Login_InactiveUser_ThrowsUnauthorizedAccessException() {
             // Arrange
             var user = BuildUser(isActive: false);
             _userRepoMock.Setup(x => x.GetByEmailAsync(user.Email, default)).ReturnsAsync(user);
@@ -88,15 +86,13 @@ namespace AuthService.Tests.Services
         // ── Register ─────────────────────────────────────────────────────────────
 
         [Fact]
-        public async Task Register_NewEmail_ReturnsAuthResponse()
-        {
+        public async Task Register_NewEmail_ReturnsAuthResponse() {
             // Arrange
             _userRepoMock.Setup(x => x.GetByEmailAsync("new@test.com", default)).ReturnsAsync((AuthUser?)null);
             _passwordHasherMock.Setup(x => x.Hash("password")).Returns("hashed-password");
 
             // Act
-            var result = await _sut.RegisterAsync(new RegisterRequest
-            {
+            var result = await _sut.RegisterAsync(new RegisterRequest {
                 Email = "new@test.com",
                 Password = "password",
                 Role = "User"
@@ -109,8 +105,7 @@ namespace AuthService.Tests.Services
         }
 
         [Fact]
-        public async Task Register_DuplicateEmail_ThrowsInvalidOperationException()
-        {
+        public async Task Register_DuplicateEmail_ThrowsInvalidOperationException() {
             // Arrange
             var existing = BuildUser();
             _userRepoMock.Setup(x => x.GetByEmailAsync(existing.Email, default)).ReturnsAsync(existing);
@@ -123,8 +118,7 @@ namespace AuthService.Tests.Services
         // ── RefreshToken ─────────────────────────────────────────────────────────
 
         [Fact]
-        public async Task RefreshToken_ValidToken_ReturnsNewAuthResponse()
-        {
+        public async Task RefreshToken_ValidToken_ReturnsNewAuthResponse() {
             // Arrange
             var user = BuildUser();
             var stored = BuildRefreshToken(user.Id);
@@ -140,8 +134,7 @@ namespace AuthService.Tests.Services
         }
 
         [Fact]
-        public async Task RefreshToken_TokenNotFound_ThrowsUnauthorizedAccessException()
-        {
+        public async Task RefreshToken_TokenNotFound_ThrowsUnauthorizedAccessException() {
             // Arrange
             _refreshTokenRepoMock.Setup(x => x.GetByTokenAsync(It.IsAny<string>(), default)).ReturnsAsync((RefreshToken?)null);
 
@@ -151,8 +144,7 @@ namespace AuthService.Tests.Services
         }
 
         [Fact]
-        public async Task RefreshToken_RevokedToken_ThrowsUnauthorizedAccessException()
-        {
+        public async Task RefreshToken_RevokedToken_ThrowsUnauthorizedAccessException() {
             // Arrange
             var user = BuildUser();
             var stored = BuildRefreshToken(user.Id, isRevoked: true);
@@ -164,8 +156,7 @@ namespace AuthService.Tests.Services
         }
 
         [Fact]
-        public async Task RefreshToken_ExpiredToken_ThrowsUnauthorizedAccessException()
-        {
+        public async Task RefreshToken_ExpiredToken_ThrowsUnauthorizedAccessException() {
             // Arrange
             var user = BuildUser();
             var stored = BuildRefreshToken(user.Id, expireAt: DateTimeOffset.UtcNow.AddDays(-1));
@@ -179,8 +170,7 @@ namespace AuthService.Tests.Services
         // ── Logout ───────────────────────────────────────────────────────────────
 
         [Fact]
-        public async Task Logout_ValidToken_RevokesToken()
-        {
+        public async Task Logout_ValidToken_RevokesToken() {
             // Arrange
             var user = BuildUser();
             var stored = BuildRefreshToken(user.Id);
@@ -195,8 +185,7 @@ namespace AuthService.Tests.Services
         }
 
         [Fact]
-        public async Task Logout_AlreadyRevokedToken_DoesNotCallRevokeAgain()
-        {
+        public async Task Logout_AlreadyRevokedToken_DoesNotCallRevokeAgain() {
             // Arrange
             var user = BuildUser();
             var stored = BuildRefreshToken(user.Id, isRevoked: true);
@@ -211,8 +200,7 @@ namespace AuthService.Tests.Services
 
         // ── Helpers ──────────────────────────────────────────────────────────────
 
-        private static AuthUser BuildUser(bool isActive = true) => new()
-        {
+        private static AuthUser BuildUser(bool isActive = true) => new() {
             Id = Guid.NewGuid(),
             Email = "user@test.com",
             PasswordHash = "hashed-password",
@@ -225,8 +213,7 @@ namespace AuthService.Tests.Services
         private static RefreshToken BuildRefreshToken(
             Guid userId,
             bool isRevoked = false,
-            DateTimeOffset? expireAt = null) => new()
-            {
+            DateTimeOffset? expireAt = null) => new() {
                 Id = Guid.NewGuid(),
                 UserId = userId,
                 Token = "valid-token",

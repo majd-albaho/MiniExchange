@@ -1,11 +1,15 @@
-﻿using AuthService.Application.Interfaces.Services;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using RabbitMQ.Client;
 using System.Text;
 using System.Text.Json;
 
-namespace AuthService.Application.Services
+namespace SharedLibrary.EventDriven
 {
+    public interface IMessageBroker
+    {
+        Task PublishAsync<T>(string queueName, T message);
+    }
+
     public class RabbitMqMessageBroker : IMessageBroker
     {
         private readonly ConnectionFactory _factory;

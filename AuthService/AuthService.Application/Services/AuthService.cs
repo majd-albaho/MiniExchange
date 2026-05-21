@@ -2,7 +2,8 @@
 using AuthService.Application.Interfaces.Repositories;
 using AuthService.Application.Interfaces.Services;
 using AuthService.Domain.Entities;
-using SharedLibrary.EventModel;
+using SharedLibrary.EventDriven;
+using SharedLibrary.EventDriven.Models;
 
 namespace AuthService.Application.Services
 {
