@@ -14,11 +14,7 @@
 
 	<ItemGroup>
 	  <Folder Include="Commands\" />
-	  <Folder Include="Dto\" />
 	  <Folder Include="Interfaces\ExternalServices\" />
-	  <Folder Include="Interfaces\Repositories\" />
-	  <Folder Include="Interfaces\Services\" />
-	  <Folder Include="Services\" />
 	</ItemGroup>
 
 </Project>

@@ -217,19 +217,23 @@ namespace AuthService.Tests.Services
             Email = "user@test.com",
             PasswordHash = "hashed-password",
             Role = "User",
-            IsActive = isActive
+            IsActive = isActive,
+            CreatedDate = DateTimeOffset.UtcNow,
+            CreatedBy = "test"
         };
 
         private static RefreshToken BuildRefreshToken(
             Guid userId,
             bool isRevoked = false,
             DateTimeOffset? expireAt = null) => new()
-        {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            Token = "valid-token",
-            IsRevoked = isRevoked,
-            ExpireAt = expireAt ?? DateTimeOffset.UtcNow.AddDays(7)
-        };
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Token = "valid-token",
+                IsRevoked = isRevoked,
+                ExpireAt = expireAt ?? DateTimeOffset.UtcNow.AddDays(7),
+                CreatedDate = DateTimeOffset.UtcNow,
+                CreatedBy = "test"
+            };
     }
 }

@@ -1,6 +1,8 @@
-﻿namespace AuthService.Domain.Entities
+﻿using SharedLibrary.Entities;
+
+namespace AuthService.Domain.Entities
 {
-    public class AuthUser : EntityBase
+    public class AuthUser : EntityBase<Guid>
     {
         public string Email { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;

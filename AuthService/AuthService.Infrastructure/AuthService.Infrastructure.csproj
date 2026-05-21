@@ -32,4 +32,10 @@
 	  <PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.3" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Reference Include="SharedLibrary">
+	    <HintPath>..\..\References\SharedLibrary.dll</HintPath>
+	  </Reference>
+	</ItemGroup>
+
 </Project>

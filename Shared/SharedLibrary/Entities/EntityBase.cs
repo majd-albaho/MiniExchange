@@ -1,11 +1,11 @@
-﻿namespace AuthService.Domain.Entities
+﻿namespace SharedLibrary.Entities
 {
-    public class EntityBase
+    public class EntityBase<T>
     {
-        public Guid Id { get; set; } = Guid.NewGuid();
+        public required T Id { get; set; }
 
-        public DateTimeOffset CreatedDate { get; set; }
-        public string CreatedBy { get; set; } = string.Empty;
+        public required DateTimeOffset CreatedDate { get; set; }
+        public required string CreatedBy { get; set; }
 
         public DateTimeOffset ModifiedDate { get; set; }
         public string ModifiedBy { get; set; } = string.Empty;

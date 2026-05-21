@@ -21,4 +21,10 @@
 	  <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Reference Include="SharedLibrary">
+	    <HintPath>..\..\References\SharedLibrary.dll</HintPath>
+	  </Reference>
+	</ItemGroup>
+
 </Project>
