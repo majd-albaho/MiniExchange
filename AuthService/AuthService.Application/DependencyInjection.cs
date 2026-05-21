@@ -9,6 +9,7 @@ namespace AuthService.Application
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
             services.AddScoped<IAuthService, Services.AuthService>();
+            services.AddSingleton<IMessageBroker, RabbitMqMessageBroker>();
             return services;
         }
     }
