@@ -9,25 +9,31 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\WalletService.Application\WalletService.Application.csproj" />
-	  <ProjectReference Include="..\WalletService.Domain\WalletService.Domain.csproj" />
+		<ProjectReference Include="..\WalletService.Application\WalletService.Application.csproj" />
+		<ProjectReference Include="..\WalletService.Domain\WalletService.Domain.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="GrpcClients\" />
-	  <Folder Include="Messaging\" />
-	  <Folder Include="Persistence\" />
-	  <Folder Include="Repositories\" />
-	  <Folder Include="Services\" />
+		<Folder Include="GrpcClients\" />
+		<Folder Include="Messaging\" />
+		<Folder Include="Services\" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="Google.Protobuf" Version="3.34.1" />
-	  <PackageReference Include="Grpc.Net.ClientFactory" Version="2.80.0" />
-	  <PackageReference Include="Grpc.Tools" Version="2.80.0">
-	    <PrivateAssets>all</PrivateAssets>
-	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-	  </PackageReference>
+		<PackageReference Include="Google.Protobuf" Version="3.34.1" />
+		<PackageReference Include="Grpc.Net.ClientFactory" Version="2.80.0" />
+		<PackageReference Include="Grpc.Tools" Version="2.80.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.8" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="SharedLibrary">
+			<HintPath>..\..\References\SharedLibrary.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 </Project>

@@ -1,23 +1,26 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using SharedLibrary.EventModel;
+using SharedLibrary.EventDriven.Models;
 using System.Text;
 using System.Text.Json;
 
-namespace WalletService.Application.Services
+namespace WalletService.Api.BackgroundServices
 {
     public class UserRegisteredConsumer : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
 
-        public UserRegisteredConsumer(IServiceScopeFactory scopeFactory, IConfiguration configuration) {
+        public UserRegisteredConsumer(IServiceScopeFactory scopeFactory, IConfiguration configuration)
+        {
             _scopeFactory = scopeFactory;
             _configuration = configuration;
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
-            var factory = new ConnectionFactory {
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            var factory = new ConnectionFactory
+            {
                 HostName = _configuration["RabbitMQ:Host"] ?? "localhost"
             };
 
@@ -28,8 +31,10 @@ namespace WalletService.Application.Services
 
             var consumer = new AsyncEventingBasicConsumer(channel);
 
-            consumer.ReceivedAsync += async (_, ea) => {
-                try {
+            consumer.ReceivedAsync += async (_, ea) =>
+            {
+                try
+                {
                     var body = ea.Body.ToArray();
                     var json = Encoding.UTF8.GetString(body);
                     var message = JsonSerializer.Deserialize<UserRegisteredEvent>(json);
@@ -45,7 +50,9 @@ namespace WalletService.Application.Services
                     //}
 
                     await channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
-                } catch {
+                }
+                catch
+                {
                     // no ack = retry later
                 }
             };

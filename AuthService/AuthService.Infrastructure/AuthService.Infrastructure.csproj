@@ -9,33 +9,33 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\AuthService.Application\AuthService.Application.csproj" />
-	  <ProjectReference Include="..\AuthService.Domain\AuthService.Domain.csproj" />
+		<ProjectReference Include="..\AuthService.Application\AuthService.Application.csproj" />
+		<ProjectReference Include="..\AuthService.Domain\AuthService.Domain.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="GrpcClients\" />
-	  <Folder Include="Messaging\" />
+		<Folder Include="GrpcClients\" />
+		<Folder Include="Messaging\" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="Google.Protobuf" Version="3.34.1" />
-	  <PackageReference Include="Grpc.Net.ClientFactory" Version="2.80.0" />
-	  <PackageReference Include="Grpc.Tools" Version="2.80.0">
-	    <PrivateAssets>all</PrivateAssets>
-	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-	  </PackageReference>
-	  <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.10" />
-	  <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
-	  <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.8" />
-	  <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
-	  <PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.3" />
+		<PackageReference Include="Google.Protobuf" Version="3.34.1" />
+		<PackageReference Include="Grpc.Net.ClientFactory" Version="2.80.0" />
+		<PackageReference Include="Grpc.Tools" Version="2.80.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.10" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.8" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
+		<PackageReference Include="System.Security.Cryptography.Xml" Version="8.0.3" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Reference Include="SharedLibrary">
-	    <HintPath>..\..\References\SharedLibrary.dll</HintPath>
-	  </Reference>
+		<Reference Include="SharedLibrary">
+			<HintPath>..\..\References\SharedLibrary.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 </Project>
