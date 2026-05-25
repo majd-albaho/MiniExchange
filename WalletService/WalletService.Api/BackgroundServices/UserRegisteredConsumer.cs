@@ -1,5 +1,6 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using SharedLibrary.EventDriven.Models;
 using SharedLibrary.EventModel;
 using System.Text;
 using System.Text.Json;
