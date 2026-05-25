@@ -1,6 +1,4 @@
-﻿using Nethereum.Hex.HexConvertors.Extensions;
-using Nethereum.Hex.HexTypes;
-using Nethereum.Web3;
+﻿using Nethereum.Hex.HexTypes;
 using Nethereum.Web3.Accounts;
 using WalletService.Application.Interfaces.Repositories;
 using WalletService.Application.Interfaces.Services;
@@ -11,18 +9,14 @@ namespace WalletService.Application.Services
     {
         private readonly IUserWalletRepository _userWalletRepository;
 
-        public UserWalletService(IUserWalletRepository userWalletRepository)
-        {
+        public UserWalletService(IUserWalletRepository userWalletRepository) {
             _userWalletRepository = userWalletRepository;
         }
 
-        public async Task<string> GetUserWallet(string userId)
-        {
+        public async Task<string> GetUserWallet(Guid userId) {
             var wallet = await _userWalletRepository.GetByUserIdAsync(userId);
             if (wallet != null)
-            {
                 return wallet.Address;
-            }
 
             wallet = CreateWallet(userId);
             await _userWalletRepository.CreateAsync(wallet);
@@ -30,8 +24,7 @@ namespace WalletService.Application.Services
             return wallet.Address;
         }
 
-        private Account LoadWallet(string userId)
-        {
+        private Account LoadWallet(Guid userId) {
             var wallet = _userWalletRepository.GetByUserIdAsync(userId).Result;
             if (wallet == null)
                 throw new Exception("Wallet not found");
@@ -41,8 +34,7 @@ namespace WalletService.Application.Services
             return account;
         }
 
-        private async Task<HexBigInteger> CheckBalance(string userId)
-        {
+        public async Task<HexBigInteger> CheckBalance(Guid userId) {
             var account = LoadWallet(userId);
             var web3 = new Nethereum.Web3.Web3(account);
             var balance = await web3.Eth.GetBalance.SendRequestAsync(account.Address);
@@ -56,8 +48,7 @@ namespace WalletService.Application.Services
             //Console.WriteLine($"Balance: {balanceEth} ETH");
         }
 
-        private async Task SendEtherium(string userId, string recipientAddress, decimal amount)
-        {
+        private async Task SendEtherium(Guid userId, string recipientAddress, decimal amount) {
             //https://www.alchemy.com/faucets/ethereum-sepolia?utm_source=chatgpt.com
             //https://www.alchemy.com/?utm_source=chatgpt.com
 
@@ -81,8 +72,7 @@ namespace WalletService.Application.Services
         }
 
 
-        private Domain.Entities.UserWallet CreateWallet(string userId)
-        {
+        private Domain.Entities.UserWallet CreateWallet(Guid userId) {
             var ecKey = Nethereum.Signer.EthECKey.GenerateKey();
 
             var privateKey = ecKey.GetPrivateKey();
@@ -91,13 +81,12 @@ namespace WalletService.Application.Services
             Console.WriteLine($"Address: {address}");
             Console.WriteLine($"Private Key: 0x{privateKey}");
 
-            return new Domain.Entities.UserWallet
-            {
+            return new Domain.Entities.UserWallet {
                 Id = default,
                 UserId = userId,
                 Address = address,
                 PrivateKey = privateKey,
-                CreatedBy = userId,
+                CreatedBy = userId.ToString(),
                 CreatedDate = DateTime.UtcNow,
             };
         }

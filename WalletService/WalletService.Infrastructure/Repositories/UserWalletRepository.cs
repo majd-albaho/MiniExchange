@@ -14,7 +14,7 @@ namespace WalletService.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task<UserWallet?> GetByUserIdAsync(string userId, CancellationToken cancellationToken = default)
+        public async Task<UserWallet?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
         {
             return await _context.UserWallets
                 .FirstOrDefaultAsync(w => w.UserId == userId, cancellationToken);
@@ -27,7 +27,7 @@ namespace WalletService.Infrastructure.Repositories
             return userWallet;
         }
 
-        public async Task<bool> DeleteAsync(string userId, CancellationToken cancellationToken = default)
+        public async Task<bool> DeleteAsync(Guid userId, CancellationToken cancellationToken = default)
         {
             var userWallet = await GetByUserIdAsync(userId, cancellationToken);
             if (userWallet == null)
