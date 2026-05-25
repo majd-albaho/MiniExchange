@@ -14,7 +14,9 @@ namespace AuthService.Infrastructure
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddDbContext<AuthDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlServer(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    sql => sql.MigrationsAssembly("AuthService.SqlMigration")));
 
             services.AddScoped<IAuthUserRepository, AuthUserRepository>();
             services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();

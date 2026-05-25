@@ -2,6 +2,9 @@
   <Folder Name="/.template.config/">
     <File Path="template.json" />
   </Folder>
+  <Folder Name="/DataBase/">
+    <Project Path="AuthService.SqlMigration/AuthService.SqlMigration.csproj" Id="4095bc4f-d14c-4411-8fa3-d3524ac62788" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Readme.txt" />
   </Folder>
