@@ -1,1 +1,0 @@
-dotnet ef migrations add InitialMigrate --project AuthService.SqlMigration --startup-project AuthService.Api --context AuthDbContext --output-dir Migrations
