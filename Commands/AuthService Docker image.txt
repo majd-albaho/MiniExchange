@@ -1,0 +1,7 @@
+
+Build Auth service commands, context directory = base
+
+docker buildx build --platform linux/amd64 -f AuthService/AuthService.Api/Dockerfile -t authservice:dev .
+docker run -d --name authservice --network miniexchange-network -p 5003:8080 -e "ASPNETCORE_ENVIRONMENT=Development" -e "ConnectionStrings__DefaultConnection=Server=miniexchange-sql,1433;Database=AuthDb;User Id=sa;Password=2e683d30d1856425f;TrustServerCertificate=True;" authservice:dev
+
+

@@ -1,0 +1,6 @@
+
+Build wallet service commands, context directory = base
+
+docker buildx build --platform linux/amd64 -f WalletService/WalletService.Api/Dockerfile -t walletservice:dev .
+docker run -d --name walletservice --network miniexchange-network -p 5002:8080 -e "ASPNETCORE_ENVIRONMENT=Development" -e "ConnectionStrings__DefaultConnection=Server=miniexchange-sql,1433;Database=WalletDb;User Id=sa;Password=2e683d30d1856425f;TrustServerCertificate=True;" walletservice:dev
+
