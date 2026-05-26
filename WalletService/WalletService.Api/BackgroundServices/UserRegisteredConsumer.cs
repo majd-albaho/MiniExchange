@@ -10,10 +10,12 @@ namespace WalletService.Api.BackgroundServices
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<UserRegisteredConsumer> _logger;
 
-        public UserRegisteredConsumer(IServiceScopeFactory scopeFactory, IConfiguration configuration) {
+        public UserRegisteredConsumer(IServiceScopeFactory scopeFactory, IConfiguration configuration, ILogger<UserRegisteredConsumer> logger) {
             _scopeFactory = scopeFactory;
             _configuration = configuration;
+            _logger = logger;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
@@ -21,15 +23,25 @@ namespace WalletService.Api.BackgroundServices
                 HostName = _configuration["RabbitMQ:Host"] ?? "localhost"
             };
 
-            var connection = await factory.CreateConnectionAsync();
+            IConnection? connection = null;
+            while (connection == null) {
+                try {
+                    connection = await factory.CreateConnectionAsync();
+                } catch (Exception ex) {
+                    _logger?.LogError(ex, "Failed to connect to RabbitMQ. Retrying in 30 seconds...");
+                    await Task.Delay(30000, stoppingToken);
+                }
+            }
+
             var channel = await connection.CreateChannelAsync();
 
             await channel.QueueDeclareAsync(queue: "wallet.user.registered", durable: true, exclusive: false, autoDelete: false);
-
             var consumer = new AsyncEventingBasicConsumer(channel);
 
             consumer.ReceivedAsync += async (_, ea) => {
                 try {
+                    _logger?.LogInformation("Received UserRegisteredEvent with delivery tag {DeliveryTag}", ea.DeliveryTag);
+
                     var body = ea.Body.ToArray();
                     var json = Encoding.UTF8.GetString(body);
                     var message = JsonSerializer.Deserialize<UserRegisteredEvent>(json);
@@ -37,11 +49,14 @@ namespace WalletService.Api.BackgroundServices
                     using var scope = _scopeFactory.CreateScope();
 
                     var userWalletService = scope.ServiceProvider.GetRequiredService<Application.Interfaces.Services.IUserWalletService>();
-                    var publicAddress = await userWalletService.GetUserWallet(message!.UserId);
+                    var userWallet = await userWalletService.GetUserWallet(message!.UserId);
+                    if (userWallet == null)
+                        throw new Exception($"User wallet not found for user {message.UserId}");
 
                     await channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
-                } catch {
-                    // no ack = retry later
+                    _logger?.LogInformation("Processed UserRegisteredEvent for user {UserId} and acknowledged message", message.UserId);
+                } catch (Exception ex) {
+                    _logger?.LogError(ex, "Error processing UserRegisteredEvent");
                 }
             };
 
