@@ -14,7 +14,7 @@
 
 	<ItemGroup>
 	  <Reference Include="SharedLibrary">
-	    <HintPath>..\..\References\SharedLibrary.dll</HintPath>
+		<HintPath>..\..\References\SharedLibrary.dll</HintPath>
 	  </Reference>
 	</ItemGroup>
 

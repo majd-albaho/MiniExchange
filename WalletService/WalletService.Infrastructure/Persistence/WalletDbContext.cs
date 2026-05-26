@@ -3,7 +3,7 @@ using WalletService.Domain.Entities;
 
 namespace WalletService.Infrastructure.Persistence
 {
-    internal class WalletDbContext : DbContext
+    public class WalletDbContext : DbContext
     {
         public WalletDbContext(DbContextOptions<WalletDbContext> options) : base(options) { }
 

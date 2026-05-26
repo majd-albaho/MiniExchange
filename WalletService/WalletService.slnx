@@ -2,6 +2,9 @@
   <Folder Name="/.template.config/">
     <File Path="template.json" />
   </Folder>
+  <Folder Name="/Database/">
+    <Project Path="WalletService.SqlMigration/WalletService.SqlMigration.csproj" Id="2e17980b-6825-4edd-8e04-1c21d27a343b" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Readme.txt" />
   </Folder>

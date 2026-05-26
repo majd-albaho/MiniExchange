@@ -9,10 +9,11 @@ namespace WalletService.Infrastructure
 {
     public static class DependencyInjection
     {
-        public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
-        {
+        public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration) {
             services.AddDbContext<WalletDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlServer(
+                    configuration.GetConnectionString("DefaultConnection"),
+                    sql => sql.MigrationsAssembly("WalletService.SqlMigration")));
 
             services.AddScoped<IUserWalletRepository, UserWalletRepository>();
             return services;

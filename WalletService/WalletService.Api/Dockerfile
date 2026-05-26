@@ -12,15 +12,21 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["WalletService.Api/WalletService.Api.csproj", "WalletService.Api/"]
-RUN dotnet restore "./WalletService.Api/WalletService.Api.csproj"
-COPY . .
-WORKDIR "/src/WalletService.Api"
+COPY ["WalletService/WalletService.Api/WalletService.Api.csproj", "WalletService/WalletService.Api/"]
+COPY ["WalletService/WalletService.Domain/WalletService.Domain.csproj", "WalletService/WalletService.Domain/"]
+COPY ["WalletService/WalletService.Application/WalletService.Application.csproj", "WalletService/WalletService.Application/"]
+COPY ["WalletService/WalletService.Infrastructure/WalletService.Infrastructure.csproj", "WalletService/WalletService.Infrastructure/"]
+COPY ["WalletService/WalletService.SqlMigration/WalletService.SqlMigration.csproj", "WalletService/WalletService.SqlMigration/"]
+COPY ["References/", "References/"]
+RUN dotnet restore "./WalletService/WalletService.Api/WalletService.Api.csproj"
+COPY WalletService/ WalletService/
+WORKDIR "/src/WalletService/WalletService.Api"
 RUN dotnet build "./WalletService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
+WORKDIR "/src/WalletService/WalletService.Api"
 RUN dotnet publish "./WalletService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)

@@ -9,29 +9,23 @@ namespace WalletService.Infrastructure.Repositories
     {
         private readonly WalletDbContext _context;
 
-        public UserWalletRepository(WalletDbContext context)
-        {
+        public UserWalletRepository(WalletDbContext context) {
             _context = context;
         }
 
-        public async Task<UserWallet?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
-        {
-            return await _context.UserWallets
-                .FirstOrDefaultAsync(w => w.UserId == userId, cancellationToken);
+        public Task<UserWallet?> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default) {
+            return _context.UserWallets.FirstOrDefaultAsync(w => w.UserId == userId, cancellationToken);
         }
 
-        public async Task<UserWallet> CreateAsync(UserWallet userWallet, CancellationToken cancellationToken = default)
-        {
+        public async Task<UserWallet> CreateAsync(UserWallet userWallet, CancellationToken cancellationToken = default) {
             await _context.UserWallets.AddAsync(userWallet, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
             return userWallet;
         }
 
-        public async Task<bool> DeleteAsync(Guid userId, CancellationToken cancellationToken = default)
-        {
+        public async Task<bool> DeleteAsync(Guid userId, CancellationToken cancellationToken = default) {
             var userWallet = await GetByUserIdAsync(userId, cancellationToken);
-            if (userWallet == null)
-            {
+            if (userWallet == null) {
                 return false;
             }
 
