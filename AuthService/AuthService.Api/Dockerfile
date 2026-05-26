@@ -12,15 +12,21 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["AuthService.Api/AuthService.Api.csproj", "AuthService.Api/"]
+COPY ["AuthService/AuthService.Api/AuthService.Api.csproj", "AuthService.Api/"]
+COPY ["AuthService/AuthService.Domain/AuthService.Domain.csproj", "AuthService.Domain/"]
+COPY ["AuthService/AuthService.Application/AuthService.Application.csproj", "AuthService.Application/"]
+COPY ["AuthService/AuthService.Infrastructure/AuthService.Infrastructure.csproj", "AuthService.Infrastructure/"]
+COPY ["AuthService/AuthService.SqlMigration/AuthService.SqlMigration.csproj", "AuthService.SqlMigration/"]
+COPY ["References/", "References/"]
 RUN dotnet restore "./AuthService.Api/AuthService.Api.csproj"
-COPY . .
-WORKDIR "/src/AuthService.Api"
+COPY AuthService/ AuthService/
+WORKDIR "/src/AuthService/AuthService.Api"
 RUN dotnet build "./AuthService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
+WORKDIR "/src/AuthService/AuthService.Api"
 RUN dotnet publish "./AuthService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)

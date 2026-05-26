@@ -1,5 +1,5 @@
-﻿using AuthService.Application.Dto;
-using AuthService.Application.Interfaces.Services;
+﻿using AuthService.Application.Interfaces.Services;
+using AuthService.Application.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.Api.Controllers
@@ -30,7 +30,7 @@ namespace AuthService.Api.Controllers
         public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken) {
             try {
                 var response = await _authService.RegisterAsync(request, cancellationToken);
-                return CreatedAtAction(nameof(Login), response);
+                return Ok(response);
             } catch (InvalidOperationException ex) {
                 return Conflict(new { message = ex.Message });
             } catch (Exception ex) {
