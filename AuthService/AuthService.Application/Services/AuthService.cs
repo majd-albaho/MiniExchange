@@ -1,6 +1,6 @@
-﻿using AuthService.Application.Dto;
-using AuthService.Application.Interfaces.Repositories;
+﻿using AuthService.Application.Interfaces.Repositories;
 using AuthService.Application.Interfaces.Services;
+using AuthService.Application.Models;
 using AuthService.Domain.Entities;
 using SharedLibrary.EventDriven;
 using SharedLibrary.EventDriven.Models;
