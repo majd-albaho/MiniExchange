@@ -1,0 +1,45 @@
+version: '3.9'
+
+services:
+  mini-exchange-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: mini-exchange-frontend:latest
+    container_name: mini-exchange-frontend
+    ports:
+      - "4200:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - mini-exchange-network
+    labels:
+      - "com.miniexchange.service=frontend"
+      - "com.miniexchange.version=1.0.0"
+
+  # ─── Example backend microservices (replace with your actual services) ──────
+  # auth-service:
+  #   image: your-registry/auth-service:latest
+  #   container_name: auth-service
+  #   ports:
+  #     - "5001:8080"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Production
+  #     - ConnectionStrings__Default=Server=db;Database=AuthDb;...
+  #   networks:
+  #     - mini-exchange-network
+  #
+  # wallet-service:
+  #   image: your-registry/wallet-service:latest
+  #   container_name: wallet-service
+  #   ports:
+  #     - "5002:8080"
+  #   networks:
+  #     - mini-exchange-network
+
+networks:
+  mini-exchange-network:
+    driver: bridge
+    name: mini-exchange-network
