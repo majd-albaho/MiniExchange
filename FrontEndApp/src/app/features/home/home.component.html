@@ -1,0 +1,148 @@
+<div class="home-page">
+  <app-page-header
+    [title]="'Welcome back, ' + (authService.user()?.nickname ?? 'Trader') + '! 👋'"
+    subtitle="Here's your portfolio overview for today."
+  >
+    <button mat-raised-button color="primary" routerLink="/trade">
+      <mat-icon>candlestick_chart</mat-icon> Start Trading
+    </button>
+  </app-page-header>
+
+  @if (loading()) {
+    <app-loading-spinner message="Loading your dashboard..." />
+  } @else {
+    <!-- Portfolio Stats -->
+    <div class="stats-grid">
+      <app-stat-card
+        label="Total Portfolio Value"
+        [value]="'$' + (wallet()?.totalBalanceUSDT | number:'1.2-2')"
+        [change]="wallet()?.totalChange24h"
+      />
+      <app-stat-card
+        label="Assets"
+        [value]="(wallet()?.assets?.length ?? 0) + ' currencies'"
+      />
+      <app-stat-card
+        label="24h Market Mood"
+        value="Bullish 📈"
+      />
+      <app-stat-card
+        label="Open Orders"
+        value="0"
+      />
+    </div>
+
+    <!-- Market Overview + Quick Actions -->
+    <div class="dashboard-grid">
+
+      <!-- Left: Quick Actions -->
+      <div class="dashboard-panel">
+        <h3 class="panel-title">Quick Actions</h3>
+        <div class="quick-actions">
+          <a class="action-btn" routerLink="/wallet">
+            <mat-icon>account_balance_wallet</mat-icon>
+            <span>Wallet</span>
+          </a>
+          <a class="action-btn" routerLink="/trade">
+            <mat-icon>show_chart</mat-icon>
+            <span>Trade</span>
+          </a>
+          <a class="action-btn" routerLink="/transactions">
+            <mat-icon>receipt_long</mat-icon>
+            <span>History</span>
+          </a>
+          <a class="action-btn" routerLink="/settings">
+            <mat-icon>settings</mat-icon>
+            <span>Settings</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Center: Portfolio Breakdown -->
+      <div class="dashboard-panel portfolio-panel">
+        <h3 class="panel-title">Portfolio Breakdown</h3>
+        <div class="asset-list">
+          @for (asset of wallet()?.assets; track asset.id) {
+            <div class="asset-row" routerLink="/wallet">
+              <img [src]="asset.logoUrl" [alt]="asset.symbol" class="asset-logo"
+                onerror="this.src='https://via.placeholder.com/32'" />
+              <div class="asset-info">
+                <div class="asset-name">{{ asset.name }}</div>
+                <div class="asset-amount">{{ asset.balance | number:'1.4-8' }} {{ asset.symbol }}</div>
+              </div>
+              <div class="asset-value">
+                <div class="asset-usdt">${{ asset.balanceUSDT | number:'1.2-2' }}</div>
+                <div class="asset-change" [class.up]="asset.change24h >= 0" [class.down]="asset.change24h < 0">
+                  {{ asset.change24h >= 0 ? '+' : '' }}{{ asset.change24h | number:'1.2-2' }}%
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Right: Market Tickers -->
+      <div class="dashboard-panel">
+        <div class="panel-header">
+          <h3 class="panel-title">Markets</h3>
+          <a routerLink="/trade" class="see-all">See All</a>
+        </div>
+        <div class="ticker-list">
+          @for (ticker of tickers(); track ticker.pair) {
+            <div class="ticker-row" [routerLink]="['/trade']">
+              <div class="ticker-pair">{{ ticker.pair }}</div>
+              <div class="ticker-price">${{ ticker.price | number:'1.2-6' }}</div>
+              <div class="ticker-change" [class.up]="ticker.change24h >= 0" [class.down]="ticker.change24h < 0">
+                {{ ticker.change24h >= 0 ? '+' : '' }}{{ ticker.change24h | number:'1.2-2' }}%
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="dashboard-panel full-width">
+      <div class="panel-header">
+        <h3 class="panel-title">Recent Transactions</h3>
+        <a routerLink="/transactions" class="see-all">View All</a>
+      </div>
+      @if (recentTx().length === 0) {
+        <div class="empty-state">
+          <mat-icon>receipt_long</mat-icon>
+          <p>No transactions yet</p>
+        </div>
+      } @else {
+        <div class="tx-list">
+          @for (tx of recentTx(); track tx.id) {
+            <div class="tx-row">
+              <div class="tx-icon" [class]="'tx-' + tx.type">
+                <mat-icon>{{ txIconMap[tx.type] }}</mat-icon>
+              </div>
+              <div class="tx-info">
+                <div class="tx-type">{{ tx.type | titlecase }}</div>
+                <div class="tx-date">{{ tx.createdAt | date:'MMM d, h:mm a' }}</div>
+              </div>
+              <div class="tx-amount">
+                <div [class]="tx.type === 'receive' || tx.type === 'buy' ? 'up' : 'down'">
+                  {{ tx.type === 'receive' || tx.type === 'buy' ? '+' : '-' }}{{ tx.amount | number:'1.4-8' }} {{ tx.symbol }}
+                </div>
+                <div class="tx-usdt">${{ tx.amountUSDT | number:'1.2-2' }}</div>
+              </div>
+              <div class="tx-status" [class]="'status-' + tx.status">{{ tx.status }}</div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Announcement Banner -->
+    <div class="announcement-banner">
+      <mat-icon>campaign</mat-icon>
+      <div>
+        <strong>New feature:</strong> Limit orders are now available on all USDT pairs. Trade smarter with precise entry prices.
+      </div>
+      <button mat-button routerLink="/trade">Try Now</button>
+    </div>
+  }
+</div>

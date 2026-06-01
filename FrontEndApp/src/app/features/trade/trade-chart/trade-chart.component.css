@@ -1,0 +1,11 @@
+.chart-container { display: flex; flex-direction: column; height: 100%; }
+.chart-toolbar { display: flex; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border-color); background: var(--bg-card); }
+.interval-btn {
+  padding: 4px 10px; border-radius: 4px; border: none; cursor: pointer;
+  font-size: 0.78rem; font-weight: 600;
+  background: transparent; color: var(--text-secondary);
+  transition: all 0.15s;
+}
+.interval-btn:hover { background: var(--accent-alpha); color: var(--accent); }
+.interval-btn.active { background: var(--accent); color: white; }
+.chart-area { flex: 1; min-height: 320px; }

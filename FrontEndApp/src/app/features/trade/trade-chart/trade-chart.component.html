@@ -1,0 +1,12 @@
+<div class="chart-container">
+  <div class="chart-toolbar">
+    @for (iv of intervals; track iv) {
+      <button
+        class="interval-btn"
+        [class.active]="selectedInterval() === iv"
+        (click)="changeInterval(iv)"
+      >{{ iv }}</button>
+    }
+  </div>
+  <div #chartRef class="chart-area"></div>
+</div>

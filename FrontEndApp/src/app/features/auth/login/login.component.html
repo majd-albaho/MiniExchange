@@ -1,0 +1,72 @@
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <span class="logo-symbol">₿</span>
+      <h1>MiniExchange</h1>
+      <p>Welcome back! Sign in to continue trading.</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="auth-form">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Email Address</mat-label>
+        <mat-icon matPrefix>email</mat-icon>
+        <input matInput formControlName="email" type="email" placeholder="you@example.com" />
+        @if (form.get('email')?.hasError('required') && form.get('email')?.touched) {
+          <mat-error>Email is required</mat-error>
+        }
+        @if (form.get('email')?.hasError('email') && form.get('email')?.touched) {
+          <mat-error>Enter a valid email address</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Password</mat-label>
+        <mat-icon matPrefix>lock</mat-icon>
+        <input matInput formControlName="password" [type]="showPassword() ? 'text' : 'password'" />
+        <button mat-icon-button matSuffix type="button" (click)="showPassword.update(v => !v)">
+          <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+        @if (form.get('password')?.hasError('required') && form.get('password')?.touched) {
+          <mat-error>Password is required</mat-error>
+        }
+      </mat-form-field>
+
+      @if (show2FAField()) {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>2FA Code</mat-label>
+          <mat-icon matPrefix>security</mat-icon>
+          <input matInput formControlName="twoFactorCode" placeholder="6-digit code" maxlength="6" />
+        </mat-form-field>
+      }
+
+      <div class="form-actions">
+        <a href="#" class="forgot-link">Forgot Password?</a>
+      </div>
+
+      <button mat-raised-button color="primary" type="submit" class="submit-btn" [disabled]="loading()">
+        @if (loading()) {
+          <span class="btn-spinner"></span> Signing in...
+        } @else {
+          Sign In
+        }
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Don't have an account? <a routerLink="/auth/signup">Create Account</a></p>
+    </div>
+  </div>
+
+  <div class="auth-illustration">
+    <div class="illustration-content">
+      <h2>Trade with Confidence</h2>
+      <p>Access global crypto markets with real-time prices, advanced charts, and secure transactions.</p>
+      <div class="feature-list">
+        <div class="feature">✓ Spot Trading</div>
+        <div class="feature">✓ Multi-currency Wallet</div>
+        <div class="feature">✓ Secure 2FA Protection</div>
+        <div class="feature">✓ Real-time Order Book</div>
+      </div>
+    </div>
+  </div>
+</div>

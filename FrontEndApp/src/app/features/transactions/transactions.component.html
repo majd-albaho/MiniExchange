@@ -1,0 +1,165 @@
+<div class="transactions-page">
+  <app-page-header title="Transaction History" subtitle="All your deposits, withdrawals and trades">
+    <button mat-stroked-button (click)="exportCSV()">
+      <mat-icon>download</mat-icon> Export CSV
+    </button>
+  </app-page-header>
+
+  <!-- Tabs -->
+  <mat-tab-group (selectedTabChange)="onTabChange($event.index)" animationDuration="200ms">
+    <mat-tab label="All"></mat-tab>
+    <mat-tab label="Deposits"></mat-tab>
+    <mat-tab label="Withdrawals"></mat-tab>
+    <mat-tab label="Buy Orders"></mat-tab>
+    <mat-tab label="Sell Orders"></mat-tab>
+  </mat-tab-group>
+
+  <!-- Filters -->
+  <div class="filters-bar">
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Status</mat-label>
+      <mat-select [(value)]="statusFilter" (selectionChange)="applyFilters()">
+        <mat-option value="all">All</mat-option>
+        <mat-option value="completed">Completed</mat-option>
+        <mat-option value="pending">Pending</mat-option>
+        <mat-option value="failed">Failed</mat-option>
+        <mat-option value="cancelled">Cancelled</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>Asset</mat-label>
+      <mat-select [(value)]="symbolFilter" (selectionChange)="applyFilters()">
+        <mat-option value="">All Assets</mat-option>
+        @for (sym of symbols; track sym) {
+          <mat-option [value]="sym">{{ sym }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>From Date</mat-label>
+      <input matInput [matDatepicker]="fromPicker" [value]="fromDate" (dateChange)="fromDate = $event.value; applyFilters()" />
+      <mat-datepicker-toggle matIconSuffix [for]="fromPicker" />
+      <mat-datepicker #fromPicker />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>To Date</mat-label>
+      <input matInput [matDatepicker]="toPicker" [value]="toDate" (dateChange)="toDate = $event.value; applyFilters()" />
+      <mat-datepicker-toggle matIconSuffix [for]="toPicker" />
+      <mat-datepicker #toPicker />
+    </mat-form-field>
+
+    <button mat-stroked-button (click)="clearFilters()" class="clear-btn">
+      <mat-icon>clear</mat-icon> Clear
+    </button>
+  </div>
+
+  <!-- Results -->
+  @if (loading()) {
+    <app-loading-spinner message="Loading transactions..." />
+  } @else {
+    <div class="tx-table">
+      <div class="table-header">
+        <span>Type</span>
+        <span>Asset</span>
+        <span>Amount</span>
+        <span>Value (USDT)</span>
+        <span>Fee</span>
+        <span>Status</span>
+        <span>Date</span>
+        <span>Details</span>
+      </div>
+
+      @if (transactions().length === 0) {
+        <div class="empty-state">
+          <mat-icon>receipt_long</mat-icon>
+          <p>No transactions found for the selected filters.</p>
+        </div>
+      }
+
+      @for (tx of transactions(); track tx.id) {
+        <div class="table-row" (click)="toggleDetails(tx.id)">
+          <div class="type-cell">
+            <div class="type-badge" [class]="'badge-' + tx.type">
+              <mat-icon>{{ txIconMap[tx.type] }}</mat-icon>
+              {{ tx.type | titlecase }}
+            </div>
+          </div>
+          <div class="asset-cell">
+            <div class="asset-symbol">{{ tx.symbol }}</div>
+            @if (tx.network) {
+              <div class="asset-network">{{ tx.network }}</div>
+            }
+            @if (tx.pair) {
+              <div class="asset-network">{{ tx.pair }}</div>
+            }
+          </div>
+          <div class="amount-cell" [class]="tx.type === 'receive' || tx.type === 'buy' ? 'up' : 'down'">
+            {{ tx.type === 'receive' || tx.type === 'buy' ? '+' : '-' }}{{ tx.amount | number:'1.4-8' }} {{ tx.symbol }}
+          </div>
+          <div class="usdt-cell">${{ tx.amountUSDT | number:'1.2-2' }}</div>
+          <div class="fee-cell">{{ tx.fee }} {{ tx.feeSymbol }}</div>
+          <div class="status-cell">
+            <span class="status-badge" [class]="'status-' + tx.status">{{ tx.status }}</span>
+          </div>
+          <div class="date-cell">
+            <div>{{ tx.createdAt | date:'MMM d, y' }}</div>
+            <div class="time">{{ tx.createdAt | date:'HH:mm' }}</div>
+          </div>
+          <div class="detail-cell">
+            <button mat-icon-button (click)="$event.stopPropagation(); toggleDetails(tx.id)">
+              <mat-icon>{{ expandedTx() === tx.id ? 'expand_less' : 'expand_more' }}</mat-icon>
+            </button>
+          </div>
+
+          <!-- Expanded Detail -->
+          @if (expandedTx() === tx.id) {
+            <div class="tx-detail" (click)="$event.stopPropagation()">
+              @if (tx.txHash) {
+                <div class="detail-row">
+                  <span>TX Hash:</span>
+                  <code>{{ tx.txHash }}</code>
+                  <button mat-icon-button matTooltip="Copy" (click)="copyText(tx.txHash!)">
+                    <mat-icon>content_copy</mat-icon>
+                  </button>
+                </div>
+              }
+              @if (tx.fromAddress) {
+                <div class="detail-row">
+                  <span>From:</span>
+                  <code>{{ tx.fromAddress }}</code>
+                </div>
+              }
+              @if (tx.toAddress) {
+                <div class="detail-row">
+                  <span>To:</span>
+                  <code>{{ tx.toAddress }}</code>
+                </div>
+              }
+              @if (tx.price) {
+                <div class="detail-row">
+                  <span>Avg Price:</span>
+                  <span>${{ tx.price | number:'1.2-6' }}</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <button mat-icon-button [disabled]="currentPage() === 1" (click)="goToPage(currentPage() - 1)">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <span class="page-info">Page {{ currentPage() }} of {{ totalPages() }}</span>
+      <button mat-icon-button [disabled]="currentPage() >= totalPages()" (click)="goToPage(currentPage() + 1)">
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+      <span class="total-info">{{ total() }} total</span>
+    </div>
+  }
+</div>

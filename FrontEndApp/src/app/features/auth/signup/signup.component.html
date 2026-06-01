@@ -1,0 +1,149 @@
+<div class="auth-page">
+  <div class="auth-card wide">
+    <div class="auth-logo">
+      <span class="logo-symbol">₿</span>
+      <h1>Create Account</h1>
+      <p>Join MiniExchange and start trading today.</p>
+    </div>
+
+    <mat-stepper linear #stepper class="signup-stepper">
+
+      <!-- Step 1: Account Info -->
+      <mat-step [stepControl]="accountForm" label="Account">
+        <form [formGroup]="accountForm" class="step-form">
+          <div class="form-row">
+            <mat-form-field appearance="outline">
+              <mat-label>First Name</mat-label>
+              <input matInput formControlName="firstName" />
+              @if (accountForm.get('firstName')?.hasError('required') && accountForm.get('firstName')?.touched) {
+                <mat-error>Required</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Last Name</mat-label>
+              <input matInput formControlName="lastName" />
+              @if (accountForm.get('lastName')?.hasError('required') && accountForm.get('lastName')?.touched) {
+                <mat-error>Required</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Nickname / Display Name</mat-label>
+            <mat-icon matPrefix>alternate_email</mat-icon>
+            <input matInput formControlName="nickname" />
+            @if (accountForm.get('nickname')?.hasError('required') && accountForm.get('nickname')?.touched) {
+              <mat-error>Nickname is required</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Email Address</mat-label>
+            <mat-icon matPrefix>email</mat-icon>
+            <input matInput formControlName="email" type="email" />
+            @if (accountForm.get('email')?.hasError('required') && accountForm.get('email')?.touched) {
+              <mat-error>Email is required</mat-error>
+            }
+            @if (accountForm.get('email')?.hasError('email') && accountForm.get('email')?.touched) {
+              <mat-error>Invalid email address</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="step-actions">
+            <button mat-raised-button color="primary" matStepperNext type="button"
+              (click)="accountForm.markAllAsTouched()">
+              Continue
+            </button>
+          </div>
+        </form>
+      </mat-step>
+
+      <!-- Step 2: Password -->
+      <mat-step [stepControl]="passwordForm" label="Security">
+        <form [formGroup]="passwordForm" class="step-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Password</mat-label>
+            <mat-icon matPrefix>lock</mat-icon>
+            <input matInput formControlName="password" [type]="showPw() ? 'text' : 'password'" />
+            <button mat-icon-button matSuffix type="button" (click)="showPw.update(v => !v)">
+              <mat-icon>{{ showPw() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (passwordForm.get('password')?.hasError('minlength') && passwordForm.get('password')?.touched) {
+              <mat-error>Minimum 8 characters</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Confirm Password</mat-label>
+            <mat-icon matPrefix>lock_clock</mat-icon>
+            <input matInput formControlName="confirmPassword" [type]="showConfirmPw() ? 'text' : 'password'" />
+            <button mat-icon-button matSuffix type="button" (click)="showConfirmPw.update(v => !v)">
+              <mat-icon>{{ showConfirmPw() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+            @if (passwordForm.get('confirmPassword')?.hasError('mismatch') && passwordForm.get('confirmPassword')?.touched) {
+              <mat-error>Passwords do not match</mat-error>
+            }
+          </mat-form-field>
+
+          <div class="password-strength">
+            <div class="strength-label">Password strength:</div>
+            <div class="strength-bars">
+              @for (s of [1,2,3,4]; track s) {
+                <div class="bar" [class.filled]="s <= passwordStrength()"></div>
+              }
+            </div>
+            <span class="strength-text">{{ strengthLabel() }}</span>
+          </div>
+
+          <div class="step-actions">
+            <button mat-button matStepperPrevious type="button">Back</button>
+            <button mat-raised-button color="primary" matStepperNext type="button"
+              (click)="passwordForm.markAllAsTouched()">
+              Continue
+            </button>
+          </div>
+        </form>
+      </mat-step>
+
+      <!-- Step 3: Confirm -->
+      <mat-step label="Confirm">
+        <div class="confirm-step">
+          <div class="confirm-summary">
+            <h3>Review your details</h3>
+            <div class="summary-item">
+              <span>Name:</span>
+              <strong>{{ accountForm.value.firstName }} {{ accountForm.value.lastName }}</strong>
+            </div>
+            <div class="summary-item">
+              <span>Nickname:</span>
+              <strong>{{ accountForm.value.nickname }}</strong>
+            </div>
+            <div class="summary-item">
+              <span>Email:</span>
+              <strong>{{ accountForm.value.email }}</strong>
+            </div>
+          </div>
+
+          <mat-checkbox [checked]="agreedToTerms" (change)="agreedToTerms = $event.checked">
+            I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+          </mat-checkbox>
+
+          <div class="step-actions">
+            <button mat-button matStepperPrevious>Back</button>
+            <button mat-raised-button color="primary" (click)="onSubmit()" [disabled]="loading() || !agreedToTerms">
+              @if (loading()) {
+                <span class="btn-spinner"></span> Creating account...
+              } @else {
+                Create Account
+              }
+            </button>
+          </div>
+        </div>
+      </mat-step>
+    </mat-stepper>
+
+    <div class="auth-footer">
+      <p>Already have an account? <a routerLink="/auth/login">Sign In</a></p>
+    </div>
+  </div>
+</div>

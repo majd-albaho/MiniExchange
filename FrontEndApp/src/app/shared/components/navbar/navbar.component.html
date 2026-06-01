@@ -1,0 +1,31 @@
+<header class="navbar">
+  <div class="navbar-left">
+    <div class="market-ticker">
+      <span class="ticker-item">BTC <span class="price">$44,187</span> <span class="up">+1.85%</span></span>
+      <span class="ticker-item">ETH <span class="price">$2,440</span> <span class="up">+3.12%</span></span>
+      <span class="ticker-item">SOL <span class="price">$98.04</span> <span class="up">+5.67%</span></span>
+    </div>
+  </div>
+  <div class="navbar-right">
+    <button mat-icon-button (click)="themeService.toggleTheme()" class="icon-btn">
+      <mat-icon>{{ themeService.theme() === 'dark' ? 'light_mode' : 'dark_mode' }}</mat-icon>
+    </button>
+    <button mat-icon-button class="icon-btn notification-btn">
+      <mat-icon>notifications</mat-icon>
+      <span class="badge">3</span>
+    </button>
+    <div class="user-menu" [matMenuTriggerFor]="userMenu">
+      <div class="avatar">{{ getUserInitials() }}</div>
+      <span class="username">{{ authService.user()?.nickname }}</span>
+      <mat-icon>expand_more</mat-icon>
+    </div>
+    <mat-menu #userMenu="matMenu" class="user-dropdown">
+      <a mat-menu-item routerLink="/settings">
+        <mat-icon>manage_accounts</mat-icon> Profile & Settings
+      </a>
+      <button mat-menu-item (click)="authService.logout()">
+        <mat-icon>logout</mat-icon> Logout
+      </button>
+    </mat-menu>
+  </div>
+</header>

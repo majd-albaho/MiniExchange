@@ -1,0 +1,82 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2>Receive {{ selectedSymbol }}</h2>
+    <button mat-icon-button (click)="close()"><mat-icon>close</mat-icon></button>
+  </div>
+
+  <div class="dialog-body">
+    <div class="asset-selector">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Select Asset</mat-label>
+        <mat-select [(ngModel)]="selectedSymbol" (ngModelChange)="onAssetChange($event)">
+          @for (a of data.allAssets; track a.id) {
+            <mat-option [value]="a.symbol">{{ a.name }} ({{ a.symbol }})</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Network</mat-label>
+        <mat-select [(ngModel)]="selectedNetwork" (ngModelChange)="loadReceiveInfo()">
+          @for (n of networkOptions(); track n) {
+            <mat-option [value]="n">{{ n }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    @if (loading()) {
+      <div class="loading-placeholder">Loading address...</div>
+    } @else if (receiveInfo()) {
+      <div class="qr-section">
+        <qrcode
+          [qrdata]="receiveInfo()!.address"
+          [width]="200"
+          [errorCorrectionLevel]="'M'"
+          [colorDark]="'#ffffff'"
+          [colorLight]="'#1a1f2e'"
+          [margin]="2"
+        />
+      </div>
+
+      <div class="address-section">
+        <div class="address-label">Deposit Address</div>
+        <div class="address-box">
+          <span class="address-text">{{ receiveInfo()!.address }}</span>
+          <button mat-icon-button (click)="copyAddress()">
+            <mat-icon>{{ copied() ? 'check' : 'content_copy' }}</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      @if (receiveInfo()!.memo) {
+        <div class="address-section">
+          <div class="address-label">Memo / Tag (Required)</div>
+          <div class="address-box">
+            <span class="address-text">{{ receiveInfo()!.memo }}</span>
+            <button mat-icon-button (click)="copyMemo()">
+              <mat-icon>content_copy</mat-icon>
+            </button>
+          </div>
+        </div>
+      }
+
+      <div class="tips-section">
+        <h4>⚠️ Important Notes</h4>
+        <ul>
+          <li>Only send <strong>{{ selectedSymbol }}</strong> to this address on the <strong>{{ selectedNetwork }}</strong> network.</li>
+          <li>Minimum deposit: <strong>{{ receiveInfo()!.minDeposit }}</strong> {{ selectedSymbol }}</li>
+          <li>Required confirmations: <strong>{{ receiveInfo()!.confirmations }}</strong></li>
+          <li>Sending unsupported assets or wrong network may result in permanent loss.</li>
+        </ul>
+      </div>
+    }
+  </div>
+
+  <div class="dialog-actions">
+    <button mat-raised-button color="primary" (click)="copyAddress()" [disabled]="!receiveInfo()">
+      <mat-icon>content_copy</mat-icon> Copy Address
+    </button>
+    <button mat-button (click)="close()">Close</button>
+  </div>
+</div>
