@@ -1,0 +1,79 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2>Send {{ selectedAsset().symbol }}</h2>
+    <button mat-icon-button (click)="close()"><mat-icon>close</mat-icon></button>
+  </div>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="dialog-form">
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Asset</mat-label>
+      <mat-select formControlName="symbol" (selectionChange)="onAssetChange($event.value)">
+        @for (a of data.allAssets; track a.id) {
+          <mat-option [value]="a.symbol">
+            {{ a.symbol }} — {{ a.balance | number:'1.4-8' }} available
+          </mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Network</mat-label>
+      <mat-select formControlName="network">
+        @for (n of networkOptions(); track n) {
+          <mat-option [value]="n">{{ n }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Recipient Address</mat-label>
+      <mat-icon matPrefix>send</mat-icon>
+      <input matInput formControlName="toAddress" placeholder="Paste recipient address" />
+      @if (form.get('toAddress')?.hasError('required') && form.get('toAddress')?.touched) {
+        <mat-error>Address is required</mat-error>
+      }
+    </mat-form-field>
+
+    @if (hasMemo()) {
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Memo / Tag (optional)</mat-label>
+        <input matInput formControlName="memo" placeholder="Required for some exchanges" />
+      </mat-form-field>
+    }
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Amount</mat-label>
+      <input matInput formControlName="amount" type="number" step="any" />
+      <button mat-button matSuffix type="button" (click)="setMax()">MAX</button>
+      @if (form.get('amount')?.hasError('required') && form.get('amount')?.touched) {
+        <mat-error>Amount is required</mat-error>
+      }
+      @if (form.get('amount')?.hasError('min') && form.get('amount')?.touched) {
+        <mat-error>Amount must be greater than 0</mat-error>
+      }
+      <mat-hint>≈ ${{ estimatedUSDT() | number:'1.2-2' }} USDT</mat-hint>
+    </mat-form-field>
+
+    <div class="fee-info">
+      <span>Network Fee:</span>
+      <span>~0.0001 {{ selectedAsset().symbol }}</span>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>PIN</mat-label>
+      <mat-icon matPrefix>lock</mat-icon>
+      <input matInput formControlName="pin" type="password" maxlength="6" placeholder="Enter your transaction PIN" />
+      @if (form.get('pin')?.hasError('required') && form.get('pin')?.touched) {
+        <mat-error>PIN is required</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="dialog-actions">
+      <button mat-button type="button" (click)="close()">Cancel</button>
+      <button mat-raised-button color="warn" type="submit" [disabled]="loading()">
+        @if (loading()) { <span class="btn-spinner"></span> } Send
+      </button>
+    </div>
+  </form>
+</div>

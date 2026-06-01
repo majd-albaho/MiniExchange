@@ -1,0 +1,109 @@
+<div class="spot-trading">
+  <div class="trading-header">
+    <h3>Spot Trading</h3>
+    <div class="order-type">
+      <button [class.active]="orderType() === 'limit'" (click)="orderType.set('limit')">Limit</button>
+      <button [class.active]="orderType() === 'market'" (click)="setMarket()">Market</button>
+    </div>
+  </div>
+
+  <div class="buy-sell-grid">
+    <!-- BUY -->
+    <div class="order-form buy-form">
+      <div class="form-label buy-label">Buy {{ baseAsset }}</div>
+      <div class="balance-info">
+        Available: <strong>{{ quoteBalance() | number:'1.2-2' }} {{ quoteAsset }}</strong>
+      </div>
+
+      @if (orderType() === 'limit') {
+        <div class="input-group">
+          <label>Price ({{ quoteAsset }})</label>
+          <div class="input-wrapper">
+            <input type="number" [(ngModel)]="buyPrice" (input)="calcBuyTotal()" step="any" />
+            <span class="input-suffix">{{ quoteAsset }}</span>
+          </div>
+        </div>
+      }
+
+      <div class="input-group">
+        <label>Amount ({{ baseAsset }})</label>
+        <div class="input-wrapper">
+          <input type="number" [(ngModel)]="buyAmount" (input)="calcBuyTotal()" step="any" />
+          <span class="input-suffix">{{ baseAsset }}</span>
+        </div>
+      </div>
+
+      <div class="pct-buttons">
+        @for (pct of pcts; track pct) {
+          <button (click)="setBuyPct(pct)">{{ pct }}%</button>
+        }
+      </div>
+
+      <div class="input-group">
+        <label>Total ({{ quoteAsset }})</label>
+        <div class="input-wrapper">
+          <input type="number" [(ngModel)]="buyTotal" (input)="calcBuyAmount()" step="any" />
+          <span class="input-suffix">{{ quoteAsset }}</span>
+        </div>
+      </div>
+
+      <div class="fee-row">
+        Fee: <span>{{ (buyTotal * 0.001) | number:'1.4-4' }} {{ quoteAsset }}</span>
+      </div>
+
+      <button class="submit-btn buy-btn" (click)="placeOrder('buy')" [disabled]="buyLoading()">
+        @if (buyLoading()) { <span class="btn-spinner"></span> }
+        Buy {{ baseAsset }}
+      </button>
+    </div>
+
+    <!-- SELL -->
+    <div class="order-form sell-form">
+      <div class="form-label sell-label">Sell {{ baseAsset }}</div>
+      <div class="balance-info">
+        Available: <strong>{{ baseBalance() | number:'1.4-6' }} {{ baseAsset }}</strong>
+      </div>
+
+      @if (orderType() === 'limit') {
+        <div class="input-group">
+          <label>Price ({{ quoteAsset }})</label>
+          <div class="input-wrapper">
+            <input type="number" [(ngModel)]="sellPrice" (input)="calcSellTotal()" step="any" />
+            <span class="input-suffix">{{ quoteAsset }}</span>
+          </div>
+        </div>
+      }
+
+      <div class="input-group">
+        <label>Amount ({{ baseAsset }})</label>
+        <div class="input-wrapper">
+          <input type="number" [(ngModel)]="sellAmount" (input)="calcSellTotal()" step="any" />
+          <span class="input-suffix">{{ baseAsset }}</span>
+        </div>
+      </div>
+
+      <div class="pct-buttons">
+        @for (pct of pcts; track pct) {
+          <button (click)="setSellPct(pct)">{{ pct }}%</button>
+        }
+      </div>
+
+      <div class="input-group">
+        <label>Total ({{ quoteAsset }})</label>
+        <div class="input-wrapper">
+          <input type="number" [value]="sellTotal | number:'1.2-4'" readonly />
+          <span class="input-suffix">{{ quoteAsset }}</span>
+        </div>
+      </div>
+
+      <div class="fee-row">
+        Fee: <span>{{ (sellTotal * 0.001) | number:'1.4-4' }} {{ quoteAsset }}</span>
+      </div>
+
+      <button class="submit-btn sell-btn" (click)="placeOrder('sell')" [disabled]="sellLoading()">
+        @if (sellLoading()) { <span class="btn-spinner"></span> }
+        Sell {{ baseAsset }}
+      </button>
+    </div>
+  </div>
+</div>

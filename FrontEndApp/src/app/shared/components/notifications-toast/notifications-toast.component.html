@@ -1,0 +1,11 @@
+<div class="toast-container">
+  @for (n of notifService.notifications(); track n.id) {
+    <div class="toast" [class]="'toast-' + n.type" @toastAnim>
+      <mat-icon>{{ iconMap[n.type] }}</mat-icon>
+      <span>{{ n.message }}</span>
+      <button class="close-btn" (click)="notifService.dismiss(n.id)">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+</div>

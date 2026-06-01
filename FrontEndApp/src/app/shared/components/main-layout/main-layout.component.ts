@@ -10,38 +10,8 @@ import { CommonModule } from '@angular/common';
   selector: 'app-main-layout',
   standalone: true,
   imports: [CommonModule, RouterOutlet, NavbarComponent, SidebarComponent, NotificationsToastComponent],
-  template: `
-    <div class="app-shell" [attr.data-theme]="themeService.theme()">
-      <app-sidebar />
-      <div class="main-content">
-        <app-navbar />
-        <main class="page-content">
-          <router-outlet />
-        </main>
-      </div>
-      <app-notifications-toast />
-    </div>
-  `,
-  styles: [`
-    .app-shell {
-      display: flex;
-      height: 100vh;
-      overflow: hidden;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-    }
-    .main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .page-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 24px;
-    }
-  `],
+  templateUrl: './main-layout.component.html',
+  styleUrl: './main-layout.component.css',
 })
 export class MainLayoutComponent {
   themeService = inject(ThemeService);

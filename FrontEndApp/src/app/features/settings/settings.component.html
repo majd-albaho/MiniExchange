@@ -1,0 +1,225 @@
+<div class="settings-page">
+  <app-page-header title="Settings" subtitle="Manage your account preferences and security" />
+
+  <div class="settings-layout">
+    <!-- Sidebar Nav -->
+    <div class="settings-nav">
+      @for (tab of settingsTabs; track tab.id) {
+        <button class="nav-btn" [class.active]="activeTab() === tab.id" (click)="activeTab.set(tab.id)">
+          <mat-icon>{{ tab.icon }}</mat-icon>
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+
+    <!-- Content -->
+    <div class="settings-content">
+
+      <!-- Profile Tab -->
+      @if (activeTab() === 'profile') {
+        <div class="settings-card">
+          <h3>Profile Information</h3>
+          <div class="avatar-section">
+            <div class="avatar-large">{{ getUserInitials() }}</div>
+            <div>
+              <div class="avatar-name">{{ authService.user()?.firstName }} {{ authService.user()?.lastName }}</div>
+              <div class="avatar-email">{{ authService.user()?.email }}</div>
+              <div class="kyc-badge" [class.verified]="authService.user()?.kycVerified">
+                <mat-icon>{{ authService.user()?.kycVerified ? 'verified' : 'pending' }}</mat-icon>
+                {{ authService.user()?.kycVerified ? 'KYC Verified' : 'KYC Pending' }}
+              </div>
+            </div>
+          </div>
+          <mat-divider />
+          <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="settings-form">
+            <div class="form-row">
+              <mat-form-field appearance="outline">
+                <mat-label>First Name</mat-label>
+                <input matInput formControlName="firstName" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Last Name</mat-label>
+                <input matInput formControlName="lastName" />
+              </mat-form-field>
+            </div>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Nickname</mat-label>
+              <mat-icon matPrefix>alternate_email</mat-icon>
+              <input matInput formControlName="nickname" />
+            </mat-form-field>
+            <div class="form-actions">
+              <button mat-raised-button color="primary" type="submit" [disabled]="savingProfile()">
+                {{ savingProfile() ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      <!-- Security Tab -->
+      @if (activeTab() === 'security') {
+        <!-- Change Password -->
+        <div class="settings-card">
+          <h3>Change Password</h3>
+          <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="settings-form">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Current Password</mat-label>
+              <mat-icon matPrefix>lock</mat-icon>
+              <input matInput formControlName="currentPassword" type="password" />
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>New Password</mat-label>
+              <mat-icon matPrefix>lock_open</mat-icon>
+              <input matInput formControlName="newPassword" type="password" />
+              @if (passwordForm.get('newPassword')?.hasError('minlength') && passwordForm.get('newPassword')?.touched) {
+                <mat-error>Minimum 8 characters</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Confirm New Password</mat-label>
+              <mat-icon matPrefix>lock_clock</mat-icon>
+              <input matInput formControlName="confirmPassword" type="password" />
+            </mat-form-field>
+            <div class="form-actions">
+              <button mat-raised-button color="primary" type="submit" [disabled]="savingPassword()">
+                {{ savingPassword() ? 'Updating...' : 'Update Password' }}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 2FA -->
+        <div class="settings-card">
+          <div class="card-header">
+            <div>
+              <h3>Two-Factor Authentication (2FA)</h3>
+              <p class="card-desc">Add an extra layer of security using an authenticator app.</p>
+            </div>
+            <mat-slide-toggle
+              [checked]="authService.user()?.twoFactorEnabled ?? false"
+              (change)="toggle2FA($event.checked)"
+              color="primary"
+            />
+          </div>
+
+          @if (show2FASetup()) {
+            <div class="twofa-setup">
+              <p>Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)</p>
+              <div class="qr-wrapper">
+                <qrcode [qrdata]="twoFAData()?.qrCodeUrl ?? ''" [width]="180" [colorDark]="'#ffffff'" [colorLight]="'#1a1f2e'" />
+              </div>
+              <div class="secret-key">
+                <span>Secret Key:</span>
+                <code>{{ twoFAData()?.secret }}</code>
+                <button mat-icon-button (click)="copyText(twoFAData()?.secret ?? '')"><mat-icon>content_copy</mat-icon></button>
+              </div>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Enter 6-digit verification code</mat-label>
+                <input matInput [(ngModel)]="twoFACode" maxlength="6" placeholder="123456" />
+              </mat-form-field>
+              <button mat-raised-button color="primary" (click)="verify2FA()" [disabled]="twoFACode.length !== 6">
+                Verify & Enable 2FA
+              </button>
+            </div>
+          }
+        </div>
+
+        <!-- Transaction PIN -->
+        <div class="settings-card">
+          <div class="card-header">
+            <div>
+              <h3>Transaction PIN</h3>
+              <p class="card-desc">Set a 6-digit PIN to authorize send transactions.</p>
+            </div>
+            <span class="status-badge" [class]="authService.user()?.pinEnabled ? 'status-active' : 'status-inactive'">
+              {{ authService.user()?.pinEnabled ? 'Enabled' : 'Not Set' }}
+            </span>
+          </div>
+          <div class="pin-section">
+            <mat-form-field appearance="outline">
+              <mat-label>New PIN</mat-label>
+              <input matInput [(ngModel)]="newPin" type="password" maxlength="6" placeholder="6-digit PIN" />
+            </mat-form-field>
+            <button mat-raised-button color="primary" (click)="setPin()" [disabled]="newPin.length !== 6">
+              {{ authService.user()?.pinEnabled ? 'Update PIN' : 'Set PIN' }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Language Tab -->
+      @if (activeTab() === 'language') {
+        <div class="settings-card">
+          <h3>Language & Region</h3>
+          <p class="card-desc">Choose your preferred language for the interface.</p>
+          <div class="language-options">
+            @for (lang of languages; track lang.code) {
+              <div
+                class="lang-option"
+                [class.selected]="selectedLanguage() === lang.code"
+                (click)="setLanguage(lang.code)"
+              >
+                <span class="lang-flag">{{ lang.flag }}</span>
+                <span class="lang-name">{{ lang.name }}</span>
+                @if (selectedLanguage() === lang.code) {
+                  <mat-icon class="check-icon">check_circle</mat-icon>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- Account Tab -->
+      @if (activeTab() === 'account') {
+        <div class="settings-card">
+          <h3>Account Information</h3>
+          <div class="info-grid">
+            <div class="info-row">
+              <span>User ID</span>
+              <code>{{ authService.user()?.id }}</code>
+            </div>
+            <div class="info-row">
+              <span>Email</span>
+              <span>{{ authService.user()?.email }}</span>
+            </div>
+            <div class="info-row">
+              <span>Member Since</span>
+              <span>{{ authService.user()?.createdAt | date:'mediumDate' }}</span>
+            </div>
+            <div class="info-row">
+              <span>KYC Status</span>
+              <span class="status-badge" [class]="authService.user()?.kycVerified ? 'status-active' : 'status-inactive'">
+                {{ authService.user()?.kycVerified ? 'Verified' : 'Unverified' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-card danger-zone">
+          <h3>Danger Zone</h3>
+          <div class="danger-item">
+            <div>
+              <strong>Logout</strong>
+              <p>Sign out from all devices</p>
+            </div>
+            <button mat-raised-button color="warn" (click)="logout()">
+              <mat-icon>logout</mat-icon> Logout
+            </button>
+          </div>
+          <mat-divider />
+          <div class="danger-item">
+            <div>
+              <strong>Delete Account</strong>
+              <p>Permanently delete your account and data</p>
+            </div>
+            <button mat-stroked-button color="warn">
+              <mat-icon>delete_forever</mat-icon> Delete Account
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  </div>
+</div>

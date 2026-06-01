@@ -13,33 +13,8 @@ const INTERVALS = ['1m', '5m', '15m', '1h', '4h', '1d'];
   selector: 'app-trade-chart',
   standalone: true,
   imports: [CommonModule, MatButtonModule],
-  template: `
-    <div class="chart-container">
-      <div class="chart-toolbar">
-        @for (iv of intervals; track iv) {
-          <button
-            class="interval-btn"
-            [class.active]="selectedInterval() === iv"
-            (click)="changeInterval(iv)"
-          >{{ iv }}</button>
-        }
-      </div>
-      <div #chartRef class="chart-area"></div>
-    </div>
-  `,
-  styles: [`
-    .chart-container { display: flex; flex-direction: column; height: 100%; }
-    .chart-toolbar { display: flex; gap: 4px; padding: 8px 12px; border-bottom: 1px solid var(--border-color); background: var(--bg-card); }
-    .interval-btn {
-      padding: 4px 10px; border-radius: 4px; border: none; cursor: pointer;
-      font-size: 0.78rem; font-weight: 600;
-      background: transparent; color: var(--text-secondary);
-      transition: all 0.15s;
-    }
-    .interval-btn:hover { background: var(--accent-alpha); color: var(--accent); }
-    .interval-btn.active { background: var(--accent); color: white; }
-    .chart-area { flex: 1; min-height: 320px; }
-  `],
+  templateUrl: './trade-chart.component.html',
+  styleUrl: './trade-chart.component.css',
 })
 export class TradeChartComponent implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('chartRef') chartRef!: ElementRef<HTMLDivElement>;

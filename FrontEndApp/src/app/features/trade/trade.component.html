@@ -1,0 +1,116 @@
+<div class="trade-page">
+
+  <!-- Pair Selector Bar -->
+  <div class="pair-bar">
+    <div class="search-wrapper">
+      <mat-icon>search</mat-icon>
+      <input placeholder="Search pairs..." [(ngModel)]="pairSearch" (input)="filterPairs()" />
+    </div>
+    <div class="pairs-list">
+      @for (p of filteredPairs(); track p.symbol) {
+        <div class="pair-chip" [class.active]="selectedPair()?.symbol === p.symbol" (click)="selectPair(p)">
+          <img [src]="p.logoUrl" [alt]="p.baseAsset" class="pair-logo"
+            onerror="this.src='https://via.placeholder.com/20'" />
+          <span class="pair-symbol">{{ p.baseAsset }}/{{ p.quoteAsset }}</span>
+          <span class="pair-price">${{ p.lastPrice | number:'1.2-6' }}</span>
+          <span class="pair-change" [class.up]="p.change24h >= 0" [class.down]="p.change24h < 0">
+            {{ p.change24h >= 0 ? '+' : '' }}{{ p.change24h | number:'1.2-2' }}%
+          </span>
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <app-loading-spinner message="Loading trading data..." />
+  } @else if (selectedPair()) {
+    <!-- Current Pair Info -->
+    <div class="pair-info-bar">
+      <div class="pair-name">
+        <img [src]="selectedPair()!.logoUrl" class="pair-logo-lg"
+          onerror="this.src='https://via.placeholder.com/32'" />
+        <h2>{{ selectedPair()!.baseAsset }}/{{ selectedPair()!.quoteAsset }}</h2>
+      </div>
+      <div class="pair-stats">
+        <div class="stat">
+          <div class="stat-label">Last Price</div>
+          <div class="stat-val" [class.up]="selectedPair()!.change24h >= 0" [class.down]="selectedPair()!.change24h < 0">
+            ${{ selectedPair()!.lastPrice | number:'1.2-6' }}
+          </div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">24h Change</div>
+          <div class="stat-val" [class.up]="selectedPair()!.change24h >= 0" [class.down]="selectedPair()!.change24h < 0">
+            {{ selectedPair()!.change24h >= 0 ? '+' : '' }}{{ selectedPair()!.change24h | number:'1.2-2' }}%
+          </div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">24h High</div>
+          <div class="stat-val">${{ selectedPair()!.high24h | number:'1.2-2' }}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">24h Low</div>
+          <div class="stat-val">${{ selectedPair()!.low24h | number:'1.2-2' }}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">24h Volume</div>
+          <div class="stat-val">${{ formatVolume(selectedPair()!.volume24h) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trading Layout -->
+    <div class="trading-layout">
+
+      <!-- Chart (center) -->
+      <div class="chart-panel panel">
+        <app-trade-chart [pair]="selectedPair()!.symbol" />
+      </div>
+
+      <!-- Order Book (right) -->
+      <div class="orderbook-panel panel">
+        <div class="panel-title">Order Book</div>
+        <app-order-book
+          [symbol]="selectedPair()!.symbol"
+          [baseAsset]="selectedPair()!.baseAsset"
+          [quoteAsset]="selectedPair()!.quoteAsset"
+        />
+      </div>
+
+      <!-- Spot Trading (bottom-right or below) -->
+      <div class="trading-panel panel">
+        <app-spot-trading [pair]="selectedPair()!" />
+      </div>
+    </div>
+
+    <!-- Open Orders -->
+    <div class="open-orders-panel panel">
+      <div class="panel-title">Open Orders</div>
+      @if (openOrders().length === 0) {
+        <div class="empty-orders">No open orders</div>
+      } @else {
+        <div class="orders-table">
+          <div class="orders-header">
+            <span>Pair</span><span>Type</span><span>Side</span><span>Price</span>
+            <span>Amount</span><span>Filled</span><span>Total</span><span>Date</span><span>Cancel</span>
+          </div>
+          @for (order of openOrders(); track order.id) {
+            <div class="orders-row">
+              <span>{{ order.pair }}</span>
+              <span>{{ order.type }}</span>
+              <span [class]="order.side === 'buy' ? 'up' : 'down'">{{ order.side | titlecase }}</span>
+              <span>${{ order.price | number:'1.2-6' }}</span>
+              <span>{{ order.amount | number:'1.4-6' }}</span>
+              <span>{{ order.filled | number:'1.4-6' }}</span>
+              <span>${{ order.total | number:'1.2-2' }}</span>
+              <span>{{ order.createdAt | date:'HH:mm' }}</span>
+              <button mat-icon-button (click)="cancelOrder(order)">
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

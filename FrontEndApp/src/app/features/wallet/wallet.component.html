@@ -1,0 +1,101 @@
+<div class="wallet-page">
+  <app-page-header title="My Wallet" subtitle="Manage your crypto assets">
+    <button mat-stroked-button routerLink="/transactions">
+      <mat-icon>receipt_long</mat-icon> Transaction History
+    </button>
+  </app-page-header>
+
+  @if (loading()) {
+    <app-loading-spinner message="Loading wallet..." />
+  } @else {
+    <!-- Total Balance Card -->
+    <div class="balance-card">
+      <div class="balance-left">
+        <div class="balance-label">Total Portfolio Value</div>
+        <div class="balance-amount">
+          ${{ walletService.walletOverview()?.totalBalanceUSDT | number:'1.2-2' }}
+          <span class="balance-currency">USDT</span>
+        </div>
+        <div class="balance-change"
+          [class.up]="(walletService.walletOverview()?.totalChange24h ?? 0) >= 0"
+          [class.down]="(walletService.walletOverview()?.totalChange24h ?? 0) < 0">
+          {{ (walletService.walletOverview()?.totalChange24h ?? 0) >= 0 ? '▲' : '▼' }}
+          {{ walletService.walletOverview()?.totalChange24h | number:'1.2-2' }}% (24h)
+        </div>
+      </div>
+      <div class="balance-actions">
+        <button mat-raised-button color="primary" (click)="openSendDialog()">
+          <mat-icon>arrow_upward</mat-icon> Send
+        </button>
+        <button mat-raised-button class="receive-btn" (click)="openReceiveDialog()">
+          <mat-icon>arrow_downward</mat-icon> Receive
+        </button>
+      </div>
+    </div>
+
+    <!-- Asset List -->
+    <div class="assets-section">
+      <div class="section-header">
+        <h3>Assets</h3>
+        <div class="search-bar">
+          <mat-icon>search</mat-icon>
+          <input
+            placeholder="Search assets..."
+            [(value)]="searchQuery"
+            (input)="onSearch($event)"
+          />
+        </div>
+      </div>
+
+      <div class="assets-table">
+        <div class="table-header">
+          <span>Asset</span>
+          <span>Price</span>
+          <span>24h Change</span>
+          <span>Balance</span>
+          <span>Value (USDT)</span>
+          <span>Actions</span>
+        </div>
+
+        @for (asset of filteredAssets(); track asset.id) {
+          <div class="table-row">
+            <div class="asset-cell">
+              <img [src]="asset.logoUrl" [alt]="asset.symbol" class="asset-logo"
+                onerror="this.src='https://via.placeholder.com/32'" />
+              <div>
+                <div class="asset-symbol">{{ asset.symbol }}</div>
+                <div class="asset-name">{{ asset.name }}</div>
+              </div>
+            </div>
+            <div class="price-cell">${{ asset.price | number:'1.2-6' }}</div>
+            <div class="change-cell" [class.up]="asset.change24h >= 0" [class.down]="asset.change24h < 0">
+              {{ asset.change24h >= 0 ? '+' : '' }}{{ asset.change24h | number:'1.2-2' }}%
+            </div>
+            <div class="balance-cell">
+              <div>{{ asset.balance | number:'1.4-8' }} {{ asset.symbol }}</div>
+            </div>
+            <div class="value-cell">${{ asset.balanceUSDT | number:'1.2-2' }}</div>
+            <div class="actions-cell">
+              <button mat-icon-button matTooltip="Send" (click)="openSendDialog(asset)">
+                <mat-icon>arrow_upward</mat-icon>
+              </button>
+              <button mat-icon-button matTooltip="Receive" (click)="openReceiveDialog(asset)">
+                <mat-icon>arrow_downward</mat-icon>
+              </button>
+              <button mat-icon-button matTooltip="Trade" routerLink="/trade">
+                <mat-icon>candlestick_chart</mat-icon>
+              </button>
+            </div>
+          </div>
+        }
+
+        @if (filteredAssets().length === 0) {
+          <div class="empty-state">
+            <mat-icon>search_off</mat-icon>
+            <p>No assets found</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

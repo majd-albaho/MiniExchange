@@ -1,0 +1,33 @@
+.order-book { display: flex; flex-direction: column; height: 100%; font-size: 0.78rem; }
+.ob-header {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  padding: 8px 12px; font-size: 0.72rem; font-weight: 700;
+  color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-color);
+}
+.asks, .bids { display: flex; flex-direction: column; gap: 1px; }
+.asks { flex-direction: column-reverse; }
+.ob-row {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  padding: 3px 12px; position: relative; cursor: pointer;
+  transition: background 0.1s;
+}
+.ob-row:hover { background: rgba(255,255,255,0.05); }
+.depth-bar {
+  position: absolute; inset: 0; right: auto; height: 100%;
+  opacity: 0.15; transition: width 0.3s;
+}
+.ask-bar { background: var(--danger); }
+.bid-bar { background: var(--success); }
+.price { font-weight: 600; position: relative; z-index: 1; }
+.ask-price { color: var(--danger); }
+.bid-price { color: var(--success); }
+.amount, .total { position: relative; z-index: 1; color: var(--text-primary); }
+.spread {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; background: var(--bg-primary);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+.spread-price { font-size: 0.95rem; font-weight: 700; color: var(--accent); }
+.spread-label { font-size: 0.72rem; color: var(--text-secondary); }

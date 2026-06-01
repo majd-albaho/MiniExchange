@@ -1,0 +1,22 @@
+.dialog-container { width: 460px; padding: 24px; background: var(--bg-card); color: var(--text-primary); }
+.dialog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.dialog-header h2 { margin: 0; font-size: 1.2rem; font-weight: 700; }
+.dialog-body { display: flex; flex-direction: column; gap: 16px; }
+.asset-selector { display: flex; flex-direction: column; gap: 4px; }
+.full-width { width: 100%; }
+.qr-section { display: flex; justify-content: center; padding: 16px; background: #1a1f2e; border-radius: 12px; border: 1px solid var(--border-color); }
+.address-section { display: flex; flex-direction: column; gap: 6px; }
+.address-label { font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+.address-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-primary); border: 1px solid var(--border-color);
+  border-radius: 8px; padding: 10px 12px;
+}
+.address-text { flex: 1; font-family: monospace; font-size: 0.82rem; color: var(--text-primary); word-break: break-all; }
+.tips-section { background: rgba(255,152,0,0.08); border: 1px solid rgba(255,152,0,0.3); border-radius: 10px; padding: 14px 16px; }
+.tips-section h4 { margin: 0 0 10px; font-size: 0.88rem; color: #ff9800; }
+.tips-section ul { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 6px; }
+.tips-section li { font-size: 0.82rem; color: var(--text-secondary); }
+.tips-section strong { color: var(--text-primary); }
+.dialog-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
+.loading-placeholder { text-align: center; padding: 40px; color: var(--text-secondary); }
