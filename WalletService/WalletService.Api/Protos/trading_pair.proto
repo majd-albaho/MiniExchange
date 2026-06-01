@@ -6,6 +6,8 @@ package trading_pair;
 
 service TradingPairGrpc {
   rpc Ping (PingRequest) returns (PingResponse);
+  rpc LockFund (FundLockGrpcRequest) returns (FundLockGrpcResponse);
+  rpc UnlockFund (FundLockGrpcRequest) returns (FundLockGrpcResponse);
 }
 
 message PingRequest {
@@ -14,4 +16,13 @@ message PingRequest {
 
 message PingResponse {
   string message = 1;
+}
+
+message FundLockGrpcRequest {
+  string user_id = 1;
+  string amount = 2;
+}
+
+message FundLockGrpcResponse {
+  string locked_balance = 1;
 }

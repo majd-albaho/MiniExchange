@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using WalletService.Application.Interfaces.Services;
+using WalletService.Application.Models;
 
 namespace WalletService.Api.Controllers
 {
@@ -13,6 +14,29 @@ namespace WalletService.Api.Controllers
             _userWalletService = userWalletService;
         }
 
+        [HttpPost("LockFund")]
+        public async Task<IActionResult> LockFund(FundLockRequest request, CancellationToken cancellationToken) {
+            try {
+                var lockedBalance = await _userWalletService.LockFund(request.UserId, request.Amount, cancellationToken);
+                return Ok(new { LockedBalance = lockedBalance });
+            } catch (UnauthorizedAccessException ex) {
+                return Unauthorized(new { message = ex.Message });
+            } catch (Exception ex) {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("UnlockFund")]
+        public async Task<IActionResult> UnlockFund(FundLockRequest request, CancellationToken cancellationToken) {
+            try {
+                var lockedBalance = await _userWalletService.UnlockFund(request.UserId, request.Amount, cancellationToken);
+                return Ok(new { LockedBalance = lockedBalance });
+            } catch (UnauthorizedAccessException ex) {
+                return Unauthorized(new { message = ex.Message });
+            } catch (Exception ex) {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
 
         [HttpPost("{transactionId}")]
         public async Task<IActionResult> Get(string transactionId, CancellationToken cancellationToken) {
@@ -25,6 +49,5 @@ namespace WalletService.Api.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-
     }
 }

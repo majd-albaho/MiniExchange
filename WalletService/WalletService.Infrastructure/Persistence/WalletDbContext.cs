@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using WalletService.Domain.Entities;
 
 namespace WalletService.Infrastructure.Persistence
@@ -20,6 +20,7 @@ namespace WalletService.Infrastructure.Persistence
                 e.HasIndex(x => x.Address).IsUnique();
                 e.Property(x => x.Address).IsRequired().HasMaxLength(256);
                 e.Property(x => x.PrivateKey).IsRequired();
+                e.Property(x => x.LockedBalance).IsRequired().HasPrecision(38, 18);
             });
         }
 

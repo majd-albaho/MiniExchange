@@ -1,33 +1,28 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Nethereum.Signer;
-using Nethereum.Web3;
 using Nethereum.Web3.Accounts;
-using System.Numerics;
+using WalletService.Application.Interfaces.ExternalServices;
 using WalletService.Application.Interfaces.Repositories;
 using WalletService.Application.Interfaces.Services;
 using WalletService.Domain.Entities;
 
 namespace WalletService.Application.Services
 {
-    internal class UserWalletService : IUserWalletService
+    public class UserWalletService : IUserWalletService
     {
         private readonly IUserWalletRepository _userWalletRepository;
-        private readonly string _alchemyApiUrl = "https://eth-sepolia.g.alchemy.com/v2/7tloHtXeoED-phvbnG5Fe";
+        private readonly IWalletBlockchainClient _walletBlockchainClient;
         private readonly ILogger<UserWalletService> _logger;
 
-        public UserWalletService(IUserWalletRepository userWalletRepository, ILogger<UserWalletService> logger) {
+        public UserWalletService(IUserWalletRepository userWalletRepository, IWalletBlockchainClient walletBlockchainClient, ILogger<UserWalletService> logger) {
             _userWalletRepository = userWalletRepository;
+            _walletBlockchainClient = walletBlockchainClient;
             _logger = logger;
         }
 
         public async Task<decimal> CheckBalance(Guid userId) {
-            var account = await LoadWallet(userId);
-            var web3 = new Web3(_alchemyApiUrl);
-
-            var weiBalance = await web3.Eth.GetBalance.SendRequestAsync(account.Address);
-            var balance = Web3.Convert.FromWei(BigInteger.Parse(weiBalance.Value.ToString()));
-
-            return balance;
+            var wallet = await GetUserWallet(userId);
+            return await _walletBlockchainClient.GetEtherBalanceAsync(wallet.Address);
         }
 
         public async Task<UserWallet> GetUserWallet(Guid userId) {
@@ -43,55 +38,67 @@ namespace WalletService.Application.Services
             return wallet;
         }
 
+        public async Task<decimal> LockFund(Guid userId, decimal amount, CancellationToken cancellationToken = default) {
+            EnsurePositiveAmount(amount);
+
+            var wallet = await GetUserWallet(userId);
+            var totalBalance = await _walletBlockchainClient.GetEtherBalanceAsync(wallet.Address, cancellationToken);
+            if (totalBalance < amount) {
+                throw new InvalidOperationException("Insufficient balance to lock funds");
+            }
+
+            var locked = await _userWalletRepository.TryLockFundsAsync(wallet.Id, amount, totalBalance, userId.ToString(), cancellationToken);
+            if (!locked) {
+                throw new InvalidOperationException("Insufficient available balance to lock funds");
+            }
+
+            var updatedWallet = await _userWalletRepository.GetByUserIdAsync(userId, cancellationToken)
+                ?? throw new InvalidOperationException("Wallet not found after locking funds");
+
+            _logger?.LogInformation($"Locked {amount} ETH for user {userId}. Locked balance is {updatedWallet.LockedBalance} ETH.");
+            return updatedWallet.LockedBalance;
+        }
+
+        public async Task<decimal> UnlockFund(Guid userId, decimal amount, CancellationToken cancellationToken = default) {
+            EnsurePositiveAmount(amount);
+
+            var wallet = await _userWalletRepository.GetByUserIdAsync(userId, cancellationToken);
+            if (wallet == null) {
+                throw new InvalidOperationException("Wallet not found");
+            }
+
+            var unlocked = await _userWalletRepository.TryUnlockFundsAsync(wallet.Id, amount, userId.ToString(), cancellationToken);
+            if (!unlocked) {
+                throw new InvalidOperationException("Insufficient locked balance to unlock funds");
+            }
+
+            var updatedWallet = await _userWalletRepository.GetByUserIdAsync(userId, cancellationToken)
+                ?? throw new InvalidOperationException("Wallet not found after unlocking funds");
+
+            _logger?.LogInformation($"Unlocked {amount} ETH for user {userId}. Locked balance is {updatedWallet.LockedBalance} ETH.");
+            return updatedWallet.LockedBalance;
+        }
+
         public async Task<string> SendEtherium(Guid userId, string recipientAddress, decimal amount) {
             _logger?.LogInformation($"Initiating transfer of {amount} ETH from user {userId} to {recipientAddress}");
 
-            var account = await LoadWallet(userId, Chain.Sepolia);
-            var web3 = new Web3(account, _alchemyApiUrl);
+            var wallet = await GetUserWallet(userId);
+            var transactionHash = await _walletBlockchainClient.SendEtheriumAsync(wallet.PrivateKey, recipientAddress, amount, Chain.Sepolia);
 
-            var transactionReceipt = await web3.Eth.GetEtherTransferService()
-                .TransferEtherAndWaitForReceiptAsync(recipientAddress, amount);
-
-            var statusText = transactionReceipt.Status.Value == 1 ? "Success" : "Failure";
-            _logger?.LogInformation($"ETH transfer {statusText}. " +
-                   $"TxHash: {transactionReceipt.TransactionHash} " +
-                   $"From: {transactionReceipt.From} " +
-                   $"To: {transactionReceipt.To} " +
-                   $"Amount: {amount} " +
-                   $"BlockNumber: {transactionReceipt.BlockNumber.Value} " +
-                   $"GasUsed: {transactionReceipt.GasUsed.Value} " +
-                   $"EffectiveGasPrice: {transactionReceipt.EffectiveGasPrice.Value} " +
-                   $"Status: {transactionReceipt.Status.Value}");
-
-            if (transactionReceipt.Status.Value != 1) {
-                throw new Exception("ETH transfer failed");
-            }
-
-            return transactionReceipt.TransactionHash;
+            _logger?.LogInformation($"ETH transfer succeeded. TxHash: {transactionHash} From user: {userId} To: {recipientAddress} Amount: {amount}");
+            return transactionHash;
         }
 
         public async Task<string> GetTransactionDetails(string transactionId) {
-            var web3 = new Web3(_alchemyApiUrl);
-
-            var tx = await web3.Eth.Transactions.GetTransactionByHash.SendRequestAsync(transactionId);
-            var receipt = await web3.Eth.Transactions.GetTransactionReceipt.SendRequestAsync(transactionId);
-            if (receipt == null) {
-                _logger?.LogWarning($"Transaction receipt not found for TxHash: {transactionId}. The transaction might still be pending.");
-                return $"Transaction with hash {transactionId} is still pending or does not exist.";
-            }
-
-            _logger?.LogInformation($"Loading transaction details for TxHash: {transactionId}");
-
-            var result = $"Transaction Hash: {tx.TransactionHash}, " +
-                   $"From: {tx.From}, To: {tx.To}, " +
-                   $"Status: {(receipt.Status.Value == 1 ? "Success" : "Failure")}, " +
-                   $"Value: {Web3.Convert.FromWei(tx.Value.Value)} ETH, " +
-                   $"BlockNumber: {receipt.BlockNumber.Value}, " +
-                   $"GasUsed: {receipt.GasUsed.Value} gas, " +
-                   $"EffectiveGasPrice: {Web3.Convert.FromWei(receipt.EffectiveGasPrice.Value)} ETH";
-
+            var result = await _walletBlockchainClient.GetTransactionDetailsAsync(transactionId);
             _logger?.LogInformation(result);
             return result;
+        }
+
+        private static void EnsurePositiveAmount(decimal amount) {
+            if (amount <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(amount), amount, "Amount must be greater than zero");
+            }
         }
 
         private UserWallet CreateWallet(Guid userId) {
@@ -105,22 +112,12 @@ namespace WalletService.Application.Services
                 UserId = userId,
                 Address = address,
                 PrivateKey = privateKey,
+                LockedBalance = 0m,
                 CreatedBy = userId.ToString(),
-                CreatedDate = DateTime.UtcNow,
+                CreatedDate = DateTimeOffset.UtcNow,
+                ModifiedBy = userId.ToString(),
+                ModifiedDate = DateTimeOffset.UtcNow,
             };
-        }
-
-        private async Task<Account> LoadWallet(Guid userId, Chain? chain = null) {
-            var wallet = await GetUserWallet(userId);
-            if (wallet == null) {
-                _logger?.LogError($"Wallet not found for user {userId}");
-                throw new Exception("Wallet not found");
-            }
-
-            if (chain != null)
-                return new Account(wallet.PrivateKey, chain.Value);
-
-            return new Account(wallet.PrivateKey);
         }
     }
 }

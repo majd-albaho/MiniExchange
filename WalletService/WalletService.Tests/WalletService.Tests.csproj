@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -19,6 +19,12 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\WalletService.Application\WalletService.Application.csproj" />
 	  <ProjectReference Include="..\WalletService.Domain\WalletService.Domain.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Reference Include="SharedLibrary">
+	    <HintPath>..\..\References\SharedLibrary.dll</HintPath>
+	  </Reference>
 	</ItemGroup>
 
 	<ItemGroup>
