@@ -9,26 +9,19 @@ namespace WalletService.Api.Controllers
     {
         private readonly IUserWalletService _userWalletService;
 
-        public TransactionsController(IUserWalletService userWalletService)
-        {
+        public TransactionsController(IUserWalletService userWalletService) {
             _userWalletService = userWalletService;
         }
 
 
         [HttpPost("{transactionId}")]
-        public async Task<IActionResult> Get(string transactionId, CancellationToken cancellationToken)
-        {
-            try
-            {
+        public async Task<IActionResult> Get(string transactionId, CancellationToken cancellationToken) {
+            try {
                 var transactionDetails = await _userWalletService.GetTransactionDetails(transactionId);
                 return Ok(new { TransactionDetails = transactionDetails });
-            }
-            catch (UnauthorizedAccessException ex)
-            {
+            } catch (UnauthorizedAccessException ex) {
                 return Unauthorized(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 return BadRequest(new { message = ex.Message });
             }
         }
