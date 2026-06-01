@@ -28,8 +28,8 @@ namespace WalletService.Api.BackgroundServices
                 try {
                     connection = await factory.CreateConnectionAsync();
                 } catch (Exception ex) {
-                    _logger?.LogError(ex, "Failed to connect to RabbitMQ. Retrying in 30 seconds...");
-                    await Task.Delay(30000, stoppingToken);
+                    _logger?.LogError(ex, "Failed to connect to RabbitMQ. Retrying in 1 minute...");
+                    await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
                 }
             }
 
