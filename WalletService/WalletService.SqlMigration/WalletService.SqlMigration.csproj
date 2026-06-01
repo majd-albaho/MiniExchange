@@ -19,4 +19,8 @@
 	<ItemGroup>
 		<ProjectReference Include="..\WalletService.Infrastructure\WalletService.Infrastructure.csproj" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Migrations\" />
+	</ItemGroup>
 </Project>
