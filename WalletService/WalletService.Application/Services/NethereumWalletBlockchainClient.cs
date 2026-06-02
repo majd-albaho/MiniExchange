@@ -9,32 +9,37 @@ namespace WalletService.Application.Services
     {
         private const string AlchemyApiUrl = "https://eth-sepolia.g.alchemy.com/v2/7tloHtXeoED-phvbnG5Fe";
 
-        public async Task<decimal> GetEtherBalanceAsync(string address, CancellationToken cancellationToken = default) {
+        public async Task<decimal> GetEtherBalanceAsync(string address, CancellationToken cancellationToken = default)
+        {
             var web3 = new Web3(AlchemyApiUrl);
             var weiBalance = await web3.Eth.GetBalance.SendRequestAsync(address);
             return Web3.Convert.FromWei(weiBalance.Value);
         }
 
-        public async Task<string> SendEtheriumAsync(string privateKey, string recipientAddress, decimal amount, Chain chain, CancellationToken cancellationToken = default) {
+        public async Task<string> SendEtheriumAsync(string privateKey, string recipientAddress, decimal amount, Chain chain, CancellationToken cancellationToken = default)
+        {
             var account = new Account(privateKey, chain);
             var web3 = new Web3(account, AlchemyApiUrl);
 
             var transactionReceipt = await web3.Eth.GetEtherTransferService()
                 .TransferEtherAndWaitForReceiptAsync(recipientAddress, amount);
 
-            if (transactionReceipt.Status.Value != 1) {
+            if (transactionReceipt.Status.Value != 1)
+            {
                 throw new Exception("ETH transfer failed");
             }
 
             return transactionReceipt.TransactionHash;
         }
 
-        public async Task<string> GetTransactionDetailsAsync(string transactionId, CancellationToken cancellationToken = default) {
+        public async Task<string> GetTransactionDetailsAsync(string transactionId, CancellationToken cancellationToken = default)
+        {
             var web3 = new Web3(AlchemyApiUrl);
 
             var tx = await web3.Eth.Transactions.GetTransactionByHash.SendRequestAsync(transactionId);
             var receipt = await web3.Eth.Transactions.GetTransactionReceipt.SendRequestAsync(transactionId);
-            if (receipt == null) {
+            if (receipt == null)
+            {
                 return $"Transaction with hash {transactionId} is still pending or does not exist.";
             }
 

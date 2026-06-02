@@ -10,30 +10,43 @@ namespace WalletService.Api.Controllers
     {
         private readonly IUserWalletService _userWalletService;
 
-        public UserWalletsController(IUserWalletService userWalletService) {
+        public UserWalletsController(IUserWalletService userWalletService)
+        {
             _userWalletService = userWalletService;
         }
 
         [HttpPost("Balance/{userId}")]
-        public async Task<IActionResult> GetUserWalletBalance(Guid userId, CancellationToken cancellationToken) {
-            try {
+        public async Task<IActionResult> GetUserWalletBalance(Guid userId, CancellationToken cancellationToken)
+        {
+            try
+            {
                 var balance = await _userWalletService.CheckBalance(userId);
                 return Ok(new { Balance = balance });
-            } catch (UnauthorizedAccessException ex) {
+            }
+            catch (UnauthorizedAccessException ex)
+            {
                 return Unauthorized(new { message = ex.Message });
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 return BadRequest(new { message = ex.Message });
             }
         }
 
         [HttpPost("Send")]
-        public async Task<IActionResult> Send(SendRequest sendRequest, CancellationToken cancellationToken) {
-            try {
+        public async Task<IActionResult> Send(SendRequest sendRequest, CancellationToken cancellationToken)
+        {
+            try
+            {
                 var transaction = await _userWalletService.SendEtherium(sendRequest.UserId, sendRequest.RecipientAddress, sendRequest.Amount);
                 return Ok(new { transaction });
-            } catch (UnauthorizedAccessException ex) {
+            }
+            catch (UnauthorizedAccessException ex)
+            {
                 return Unauthorized(new { message = ex.Message });
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 return BadRequest(new { message = ex.Message });
             }
         }

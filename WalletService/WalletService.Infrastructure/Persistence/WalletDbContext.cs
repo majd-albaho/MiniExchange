@@ -8,20 +8,15 @@ namespace WalletService.Infrastructure.Persistence
         public WalletDbContext(DbContextOptions<WalletDbContext> options) : base(options) { }
 
 
+        public DbSet<Asset> Assets => Set<Asset>();
         public DbSet<UserWallet> UserWallets => Set<UserWallet>();
+        public DbSet<UserWalletAsset> UserWalletAssets => Set<UserWalletAsset>();
+        public DbSet<Wallet> Wallets => Set<Wallet>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<UserWallet>(e =>
-            {
-                e.HasKey(x => x.Id);
-                e.HasIndex(x => x.Address).IsUnique();
-                e.Property(x => x.Address).IsRequired().HasMaxLength(256);
-                e.Property(x => x.PrivateKey).IsRequired();
-                e.Property(x => x.LockedBalance).IsRequired().HasPrecision(38, 18);
-            });
         }
 
     }
