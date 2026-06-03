@@ -1,9 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Entities;
 
 namespace WalletService.Domain.Entities
 {
-    [Index(nameof(UserWalletId), IsUnique = true)]
+    [Index(nameof(UserWalletId), nameof(AssetId), IsUnique = true)]
     [Index(nameof(AssetId), IsUnique = false)]
     public class UserWalletAsset : EntityBase<long>
     {

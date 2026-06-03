@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Numerics;
 using WalletService.Domain.Entities;
 
 namespace WalletService.Infrastructure.Persistence
@@ -18,6 +19,24 @@ namespace WalletService.Infrastructure.Persistence
         {
             base.OnModelCreating(modelBuilder);
 
+            var bigIntegerConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<BigInteger, decimal>(
+                value => (decimal)value,
+                value => new BigInteger(value));
+
+            modelBuilder.Entity<UserWalletTransaction>(entity =>
+            {
+                entity.Property(transaction => transaction.BlockNumber)
+                    .HasConversion(bigIntegerConverter)
+                    .HasColumnType("decimal(38, 0)");
+
+                entity.Property(transaction => transaction.GasUsed)
+                    .HasConversion(bigIntegerConverter)
+                    .HasColumnType("decimal(38, 0)");
+
+                entity.Property(transaction => transaction.EffectiveGasPrice)
+                    .HasConversion(bigIntegerConverter)
+                    .HasColumnType("decimal(38, 0)");
+            });
         }
 
     }

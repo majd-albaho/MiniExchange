@@ -1,11 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Entities;
 using System.ComponentModel.DataAnnotations;
 using WalletService.Domain.Enums;
 
 namespace WalletService.Domain.Entities
 {
-    [Index(nameof(UserWalletId), IsUnique = true)]
+    [Index(nameof(UserWalletId), nameof(CryptoNetworkType), IsUnique = true)]
     public class UserWalletAddress : EntityBase<long>
     {
         public required long UserWalletId { get; set; }

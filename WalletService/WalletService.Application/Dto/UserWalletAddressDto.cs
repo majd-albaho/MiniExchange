@@ -1,4 +1,4 @@
-﻿using WalletService.Domain.Enums;
+using WalletService.Domain.Enums;
 
 namespace WalletService.Application.Dto
 {
@@ -7,7 +7,7 @@ namespace WalletService.Application.Dto
         public required long Id { get; set; }
         public required long UserWalletId { get; set; }
 
-        public required string Address { get; set; }
+        public required string PublicAddress { get; set; }
 
         public required string PrivateKey { get; set; }
         public CryptoNetworkType CryptoNetworkType { get; set; }

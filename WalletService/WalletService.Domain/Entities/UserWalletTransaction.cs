@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SharedLibrary.Entities;
 using System.ComponentModel.DataAnnotations;
 using System.Numerics;
@@ -11,7 +11,7 @@ namespace WalletService.Domain.Entities
     [Index(nameof(TransactionType), IsUnique = false)]
     public class UserWalletTransaction : EntityBase<long>
     {
-        public int UserWalletAddressId { get; set; }
+        public long UserWalletAddressId { get; set; }
         public long AssetId { get; set; }
 
         public DateTimeOffset TransactionDateTime { get; set; }

@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using WalletService.Domain.Enums;
 
 namespace WalletService.Application.Dto
@@ -6,7 +6,7 @@ namespace WalletService.Application.Dto
     public class UserWalletTransactionDto
     {
         public required long Id { get; set; }
-        public int UserWalletAddressId { get; set; }
+        public long UserWalletAddressId { get; set; }
         public long AssetId { get; set; }
 
         public DateTimeOffset TransactionDateTime { get; set; }
