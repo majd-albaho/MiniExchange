@@ -49,12 +49,14 @@ namespace WalletService.Application.Services
 
         public async Task<UserWalletAddress> GetUserWalletAddress(Guid userId, CryptoNetworkType networkType, CancellationToken cancellationToken = default)
         {
+            if (networkType != CryptoNetworkType.Ethereum)
+                throw new NotSupportedException($"{networkType} wallet addresses are not supported yet");
             var userWallet = await GetUserWallet(userId, cancellationToken);
             var walletAddress = await _userWalletAddressRepository.GetByUserWalletId(userWallet.Id, networkType, cancellationToken);
             if (walletAddress == null)
             {
                 _logger.LogInformation("No wallet address found for user {UserId}. Generating {NetworkType} address.", userId, networkType);
-                walletAddress = await CreateWalletAddressAsync(userWallet.Id, networkType);
+                walletAddress = await CreateWalletAddressAsync(userWallet.Id, networkType, cancellationToken);
 
                 _logger.LogInformation("Created {NetworkType} wallet address for user {UserId}", networkType, userId);
             }
@@ -81,7 +83,7 @@ namespace WalletService.Application.Services
             return _userWalletRepository.CreateAsync(userWallet, cancellationToken);
         }
 
-        private Task<UserWalletAddress> CreateWalletAddressAsync(long userWalletId, CryptoNetworkType networkType)
+        private Task<UserWalletAddress> CreateWalletAddressAsync(long userWalletId, CryptoNetworkType networkType, CancellationToken cancellationToken)
         {
             var ecKey = EthECKey.GenerateKey();
 
@@ -95,7 +97,7 @@ namespace WalletService.Application.Services
                 CreatedBy = userWalletId.ToString(),
                 CreatedDate = DateTimeOffset.UtcNow
             };
-            return _userWalletAddressRepository.AddAsync(userWalletAddress);
+            return _userWalletAddressRepository.AddAsync(userWalletAddress, cancellationToken);
         }
     }
 }

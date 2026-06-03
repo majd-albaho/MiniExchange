@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using WalletService.Application.Interfaces.Repositories;
 using WalletService.Domain.Entities;
 using WalletService.Domain.Enums;
@@ -21,9 +21,10 @@ namespace WalletService.Infrastructure.Repositories
                 .FirstOrDefaultAsync(w => w.UserWalletId == userWalletId && w.CryptoNetworkType == cryptoNetworkType, cancellationToken);
         }
 
-        public async Task<UserWalletAddress> AddAsync(UserWalletAddress userWalletAddress)
+        public async Task<UserWalletAddress> AddAsync(UserWalletAddress userWalletAddress, CancellationToken cancellationToken = default)
         {
-            var res = await _context.UserWalletAddresses.AddAsync(userWalletAddress);
+            var res = await _context.UserWalletAddresses.AddAsync(userWalletAddress, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
             return res.Entity;
         }
     }
