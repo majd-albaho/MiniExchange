@@ -13,34 +13,33 @@ namespace WalletService.Application.Services
     {
         private readonly IUserWalletRepository _userWalletRepository;
         private readonly IUserWalletAddressRepository _userWalletAddressRepository;
-        private readonly IUserWalletAssetsRepository _userWalletAssetsRepository;
         private readonly IWalletBlockchainClient _walletBlockchainClient;
         private readonly ILogger<UserWalletService> _logger;
 
-        public UserWalletService(IUserWalletRepository userWalletRepository,
+        public UserWalletService(
+            IUserWalletRepository userWalletRepository,
             IUserWalletAddressRepository userWalletAddressRepository,
-            IUserWalletAssetsRepository userWalletAssetsRepository,
-            IWalletBlockchainClient walletBlockchainClient, ILogger<UserWalletService> logger)
+            IWalletBlockchainClient walletBlockchainClient,
+            ILogger<UserWalletService> logger)
         {
             _userWalletRepository = userWalletRepository;
             _userWalletAddressRepository = userWalletAddressRepository;
-            _userWalletAssetsRepository = userWalletAssetsRepository;
             _walletBlockchainClient = walletBlockchainClient;
             _logger = logger;
         }
 
-        public async Task<UserWalletDto> GetUserWallet(Guid userId)
+        public async Task<UserWalletDto> GetUserWallet(Guid userId, CancellationToken cancellationToken = default)
         {
-            var wallet = await _userWalletRepository.GetByUserIdAsync(userId);
+            var wallet = await _userWalletRepository.GetByUserIdAsync(userId, cancellationToken);
             if (wallet == null)
             {
-                _logger?.LogInformation($"No wallet found for user {userId}. Creating new wallet.");
-                wallet = await CreateWalletAsync(userId);
+                _logger.LogInformation("No wallet found for user {UserId}. Creating new wallet.", userId);
+                wallet = await CreateWalletAsync(userId, cancellationToken);
 
-                _logger?.LogInformation($"Created new wallet for user {userId}");
+                _logger.LogInformation("Created new wallet for user {UserId}", userId);
             }
 
-            return new UserWalletDto()
+            return new UserWalletDto
             {
                 Id = wallet.Id,
                 UserId = userId,
@@ -48,73 +47,28 @@ namespace WalletService.Application.Services
             };
         }
 
-      
-        public async Task<decimal> CheckEthereumBalance(Guid userId)
+        public async Task<UserWalletAddress> GetUserWalletAddress(Guid userId, CryptoNetworkType networkType, CancellationToken cancellationToken = default)
         {
-            var wallet = await GetUserWalletAddress(userId);
-            return await _walletBlockchainClient.GetEthereumBalanceAsync(wallet.PublicAddress);
-        }
-
-
-        public async Task LockFund(Guid userId, long assetId, decimal amount, CancellationToken cancellationToken = default)
-        {
-            EnsurePositiveAmount(amount);
-            var userWallet = await GetUserWallet(userId);
-            await _userWalletAssetsRepository.LockFundsAsync(userWallet.Id, assetId, amount, userId.ToString(), cancellationToken);
-
-            _logger?.LogInformation($"Locked {amount} of asset {assetId} for user {userId} in wallet {userWallet.Id}");
-        }
-
-        public async Task UnlockFund(Guid userId, long assetId, decimal amount, CancellationToken cancellationToken = default)
-        {
-            EnsurePositiveAmount(amount);
-
-            var wallet = await GetUserWallet(userId);
-            await _userWalletAssetsRepository.UnlockFundsAsync(wallet.Id, assetId, amount, userId.ToString(), cancellationToken);
-
-            _logger?.LogInformation($"Unlocked {amount} of asset {assetId} for user {userId} in wallet {wallet.Id}");
-        }
-
-        public async Task<string> SendEthereum(Guid userId, string recipientAddress, decimal amount)
-        {
-            _logger?.LogInformation($"Initiating transfer of {amount} ETH from user {userId} to {recipientAddress}");
-
-            var wallet = await GetUserWalletAddress(userId);
-            var transactionHash = await _walletBlockchainClient.SendEthereumAsync(wallet.PrivateKey, recipientAddress, amount, Chain.Sepolia);
-
-            _logger?.LogInformation($"ETH transfer succeeded. TxHash: {transactionHash} From user: {userId} To: {recipientAddress} Amount: {amount}");
-            return transactionHash;
-        }
-
-        public async Task<string> GetTransactionDetails(string transactionId)
-        {
-            var result = await _walletBlockchainClient.GetTransactionDetailsAsync(transactionId);
-            _logger?.LogInformation(result);
-            return result;
-        }
-
-        private async Task<UserWalletAddress> GetUserWalletAddress(Guid userId)
-        {
-            var userWallet = await GetUserWallet(userId);
-            var walletAddress = await _userWalletAddressRepository.GetByUserWalletId(userWallet.Id, CryptoNetworkType.Ethereum);
+            var userWallet = await GetUserWallet(userId, cancellationToken);
+            var walletAddress = await _userWalletAddressRepository.GetByUserWalletId(userWallet.Id, networkType, cancellationToken);
             if (walletAddress == null)
             {
-                _logger?.LogInformation($"No wallet address found for user {userId}. Generating new Ethereum address.");
-                walletAddress = await CreateWalletAddressAsync(userWallet.Id, CryptoNetworkType.Ethereum);
+                _logger.LogInformation("No wallet address found for user {UserId}. Generating {NetworkType} address.", userId, networkType);
+                walletAddress = await CreateWalletAddressAsync(userWallet.Id, networkType);
 
-                _logger?.LogInformation($"Created new wallet for user {userId}. Generating Ethereum address.");
+                _logger.LogInformation("Created {NetworkType} wallet address for user {UserId}", networkType, userId);
             }
 
             return walletAddress;
         }
 
-        private static void EnsurePositiveAmount(decimal amount)
+        public async Task<decimal> CheckEthereumBalance(Guid userId, CancellationToken cancellationToken = default)
         {
-            if (amount <= 0)
-                throw new ArgumentOutOfRangeException(nameof(amount), amount, "Amount must be greater than zero");
+            var wallet = await GetUserWalletAddress(userId, CryptoNetworkType.Ethereum, cancellationToken);
+            return await _walletBlockchainClient.GetEthereumBalanceAsync(wallet.PublicAddress, cancellationToken);
         }
 
-        private Task<UserWallet> CreateWalletAsync(Guid userId)
+        private Task<UserWallet> CreateWalletAsync(Guid userId, CancellationToken cancellationToken)
         {
             var userWallet = new UserWallet
             {
@@ -124,23 +78,20 @@ namespace WalletService.Application.Services
                 CreatedBy = userId.ToString(),
                 CreatedDate = DateTimeOffset.UtcNow
             };
-            return _userWalletRepository.CreateAsync(userWallet);
+            return _userWalletRepository.CreateAsync(userWallet, cancellationToken);
         }
 
         private Task<UserWalletAddress> CreateWalletAddressAsync(long userWalletId, CryptoNetworkType networkType)
         {
             var ecKey = EthECKey.GenerateKey();
 
-            var privateKey = ecKey.GetPrivateKey();
-            var publicAddress = ecKey.GetPublicAddress();
-
             var userWalletAddress = new UserWalletAddress
             {
                 Id = default,
                 UserWalletId = userWalletId,
                 CryptoNetworkType = networkType,
-                PublicAddress = publicAddress,
-                PrivateKey = privateKey,
+                PublicAddress = ecKey.GetPublicAddress(),
+                PrivateKey = ecKey.GetPrivateKey(),
                 CreatedBy = userWalletId.ToString(),
                 CreatedDate = DateTimeOffset.UtcNow
             };
@@ -148,4 +99,3 @@ namespace WalletService.Application.Services
         }
     }
 }
-

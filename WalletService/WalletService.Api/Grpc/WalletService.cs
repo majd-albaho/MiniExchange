@@ -7,24 +7,24 @@ namespace WalletService.Api.Grpc
 {
     public class WalletService : TradingPairGrpc.TradingPairGrpcBase
     {
-        private readonly IUserWalletService _userWalletService;
+        private readonly IWalletFundService _walletFundService;
 
-        public WalletService(IUserWalletService userWalletService)
+        public WalletService(IWalletFundService walletFundService)
         {
-            _userWalletService = userWalletService;
+            _walletFundService = walletFundService;
         }
 
         public override async Task<FundLockGrpcResponse> LockFund(FundLockGrpcRequest request, ServerCallContext context)
         {
             var (userId, assetId, amount) = ParseFundLockRequest(request);
-            await _userWalletService.LockFund(userId, assetId, amount, context.CancellationToken);
+            await _walletFundService.LockFund(userId, assetId, amount, context.CancellationToken);
             return new FundLockGrpcResponse { LockedBalance = amount.ToString(CultureInfo.InvariantCulture) };
         }
 
         public override async Task<FundLockGrpcResponse> UnlockFund(FundLockGrpcRequest request, ServerCallContext context)
         {
             var (userId, assetId, amount) = ParseFundLockRequest(request);
-            await _userWalletService.UnlockFund(userId, assetId, amount, context.CancellationToken);
+            await _walletFundService.UnlockFund(userId, assetId, amount, context.CancellationToken);
             return new FundLockGrpcResponse { LockedBalance = amount.ToString(CultureInfo.InvariantCulture) };
         }
 

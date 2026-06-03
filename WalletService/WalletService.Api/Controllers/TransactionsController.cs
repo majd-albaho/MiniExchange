@@ -8,11 +8,13 @@ namespace WalletService.Api.Controllers
     [Route("api/[controller]")]
     public class TransactionsController : ControllerBase
     {
-        private readonly IUserWalletService _userWalletService;
+        private readonly IWalletFundService _walletFundService;
+        private readonly IWalletTransactionService _walletTransactionService;
 
-        public TransactionsController(IUserWalletService userWalletService)
+        public TransactionsController(IWalletFundService walletFundService, IWalletTransactionService walletTransactionService)
         {
-            _userWalletService = userWalletService;
+            _walletFundService = walletFundService;
+            _walletTransactionService = walletTransactionService;
         }
 
         [HttpPost("LockFund")]
@@ -20,7 +22,7 @@ namespace WalletService.Api.Controllers
         {
             try
             {
-                await _userWalletService.LockFund(request.UserId, request.AssetId, request.Amount, cancellationToken);
+                await _walletFundService.LockFund(request.UserId, request.AssetId, request.Amount, cancellationToken);
                 return Ok();
             }
             catch (UnauthorizedAccessException ex)
@@ -38,7 +40,7 @@ namespace WalletService.Api.Controllers
         {
             try
             {
-                await _userWalletService.UnlockFund(request.UserId, request.AssetId, request.Amount, cancellationToken);
+                await _walletFundService.UnlockFund(request.UserId, request.AssetId, request.Amount, cancellationToken);
                 return Ok();
             }
             catch (UnauthorizedAccessException ex)
@@ -56,7 +58,7 @@ namespace WalletService.Api.Controllers
         {
             try
             {
-                var transactionDetails = await _userWalletService.GetTransactionDetails(transactionId);
+                var transactionDetails = await _walletTransactionService.GetTransactionDetails(transactionId, cancellationToken);
                 return Ok(new { TransactionDetails = transactionDetails });
             }
             catch (UnauthorizedAccessException ex)

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using WalletService.Application.Interfaces.Services;
 using WalletService.Application.Models;
 
@@ -9,10 +9,12 @@ namespace WalletService.Api.Controllers
     public class UserWalletsController : ControllerBase
     {
         private readonly IUserWalletService _userWalletService;
+        private readonly IWalletTransactionService _walletTransactionService;
 
-        public UserWalletsController(IUserWalletService userWalletService)
+        public UserWalletsController(IUserWalletService userWalletService, IWalletTransactionService walletTransactionService)
         {
             _userWalletService = userWalletService;
+            _walletTransactionService = walletTransactionService;
         }
 
         [HttpPost("Balance/{userId}")]
@@ -20,7 +22,7 @@ namespace WalletService.Api.Controllers
         {
             try
             {
-                var balance = await _userWalletService.CheckEthereumBalance(userId);
+                var balance = await _userWalletService.CheckEthereumBalance(userId, cancellationToken);
                 return Ok(new { Balance = balance });
             }
             catch (UnauthorizedAccessException ex)
@@ -38,7 +40,7 @@ namespace WalletService.Api.Controllers
         {
             try
             {
-                var transaction = await _userWalletService.SendEthereum(sendRequest.UserId, sendRequest.RecipientAddress, sendRequest.Amount);
+                var transaction = await _walletTransactionService.SendEthereum(sendRequest.UserId, sendRequest.RecipientAddress, sendRequest.Amount, cancellationToken);
                 return Ok(new { transaction });
             }
             catch (UnauthorizedAccessException ex)

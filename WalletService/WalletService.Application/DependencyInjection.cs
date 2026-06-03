@@ -11,6 +11,8 @@ namespace WalletService.Application
         {
             services.AddScoped<IWalletBlockchainClient, NethereumWalletBlockchainClient>();
             services.AddScoped<IUserWalletService, UserWalletService>();
+            services.AddScoped<IWalletFundService, WalletFundService>();
+            services.AddScoped<IWalletTransactionService, WalletTransactionService>();
             return services;
         }
     }
