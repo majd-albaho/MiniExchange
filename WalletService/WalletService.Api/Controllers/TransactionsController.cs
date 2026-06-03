@@ -20,8 +20,8 @@ namespace WalletService.Api.Controllers
         {
             try
             {
-                var lockedBalance = await _userWalletService.LockFund(request.UserId, request.Amount, cancellationToken);
-                return Ok(new { LockedBalance = lockedBalance });
+                await _userWalletService.LockFund(request.UserId, request.AssetId, request.Amount, cancellationToken);
+                return Ok();
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -38,8 +38,8 @@ namespace WalletService.Api.Controllers
         {
             try
             {
-                var lockedBalance = await _userWalletService.UnlockFund(request.UserId, request.Amount, cancellationToken);
-                return Ok(new { LockedBalance = lockedBalance });
+                await _userWalletService.UnlockFund(request.UserId, request.AssetId, request.Amount, cancellationToken);
+                return Ok();
             }
             catch (UnauthorizedAccessException ex)
             {

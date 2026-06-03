@@ -7,6 +7,5 @@ namespace WalletService.Domain.Entities
     {
         public required string AssetName { get; set; }
         public CryptoNetworkType CryptoNetworkType { get; set; }
-
     }
 }

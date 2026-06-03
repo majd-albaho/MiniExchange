@@ -1,96 +1,86 @@
 using Microsoft.Extensions.Logging;
 using Nethereum.Signer;
+using WalletService.Application.Dto;
 using WalletService.Application.Interfaces.ExternalServices;
 using WalletService.Application.Interfaces.Repositories;
 using WalletService.Application.Interfaces.Services;
 using WalletService.Domain.Entities;
+using WalletService.Domain.Enums;
 
 namespace WalletService.Application.Services
 {
     public class UserWalletService : IUserWalletService
     {
         private readonly IUserWalletRepository _userWalletRepository;
+        private readonly IUserWalletAddressRepository _userWalletAddressRepository;
+        private readonly IUserWalletAssetsRepository _userWalletAssetsRepository;
         private readonly IWalletBlockchainClient _walletBlockchainClient;
         private readonly ILogger<UserWalletService> _logger;
 
-        public UserWalletService(IUserWalletRepository userWalletRepository, IWalletBlockchainClient walletBlockchainClient, ILogger<UserWalletService> logger)
+        public UserWalletService(IUserWalletRepository userWalletRepository,
+            IUserWalletAddressRepository userWalletAddressRepository,
+            IUserWalletAssetsRepository userWalletAssetsRepository,
+            IWalletBlockchainClient walletBlockchainClient, ILogger<UserWalletService> logger)
         {
             _userWalletRepository = userWalletRepository;
+            _userWalletAddressRepository = userWalletAddressRepository;
+            _userWalletAssetsRepository = userWalletAssetsRepository;
             _walletBlockchainClient = walletBlockchainClient;
             _logger = logger;
         }
 
-        public async Task<decimal> CheckBalance(Guid userId)
-        {
-            var wallet = await GetUserWallet(userId);
-            return await _walletBlockchainClient.GetEtherBalanceAsync(wallet.Address);
-        }
-
-        public async Task<UserWallet> GetUserWallet(Guid userId)
+        public async Task<UserWalletDto> GetUserWallet(Guid userId)
         {
             var wallet = await _userWalletRepository.GetByUserIdAsync(userId);
-            if (wallet != null)
-                return wallet;
+            if (wallet == null)
+            {
+                _logger?.LogInformation($"No wallet found for user {userId}. Creating new wallet.");
+                wallet = await CreateWalletAsync(userId);
 
-            _logger?.LogInformation($"No wallet found for user {userId}. Creating new wallet.");
-            wallet = CreateWallet(userId);
-            await _userWalletRepository.CreateAsync(wallet);
-            _logger?.LogInformation($"Created new wallet for user {userId} with address {wallet.Address}");
+                _logger?.LogInformation($"Created new wallet for user {userId}");
+            }
 
-            return wallet;
+            return new UserWalletDto()
+            {
+                Id = wallet.Id,
+                UserId = userId,
+                WalletName = wallet.WalletName
+            };
         }
 
-        public async Task<decimal> LockFund(Guid userId, decimal amount, CancellationToken cancellationToken = default)
+      
+        public async Task<decimal> CheckEthereumBalance(Guid userId)
+        {
+            var wallet = await GetUserWalletAddress(userId);
+            return await _walletBlockchainClient.GetEthereumBalanceAsync(wallet.PublicAddress);
+        }
+
+
+        public async Task LockFund(Guid userId, long assetId, decimal amount, CancellationToken cancellationToken = default)
+        {
+            EnsurePositiveAmount(amount);
+            var userWallet = await GetUserWallet(userId);
+            await _userWalletAssetsRepository.LockFundsAsync(userWallet.Id, assetId, amount, userId.ToString(), cancellationToken);
+
+            _logger?.LogInformation($"Locked {amount} of asset {assetId} for user {userId} in wallet {userWallet.Id}");
+        }
+
+        public async Task UnlockFund(Guid userId, long assetId, decimal amount, CancellationToken cancellationToken = default)
         {
             EnsurePositiveAmount(amount);
 
             var wallet = await GetUserWallet(userId);
-            var totalBalance = await _walletBlockchainClient.GetEtherBalanceAsync(wallet.Address, cancellationToken);
-            if (totalBalance < amount)
-            {
-                throw new InvalidOperationException("Insufficient balance to lock funds");
-            }
+            await _userWalletAssetsRepository.UnlockFundsAsync(wallet.Id, assetId, amount, userId.ToString(), cancellationToken);
 
-            var locked = await _userWalletRepository.TryLockFundsAsync(wallet.Id, amount, totalBalance, userId.ToString(), cancellationToken);
-            if (!locked)
-                throw new InvalidOperationException("Insufficient available balance to lock funds");
-
-            var updatedWallet = await _userWalletRepository.GetByUserIdAsync(userId, cancellationToken);
-            if (updatedWallet == null)
-                throw new InvalidOperationException("Wallet not found after locking funds");
-
-            _logger?.LogInformation($"Locked {amount} ETH for user {userId}. Locked balance is {updatedWallet.LockedBalance} ETH.");
-            return updatedWallet.LockedBalance;
+            _logger?.LogInformation($"Unlocked {amount} of asset {assetId} for user {userId} in wallet {wallet.Id}");
         }
 
-        public async Task<decimal> UnlockFund(Guid userId, decimal amount, CancellationToken cancellationToken = default)
-        {
-            EnsurePositiveAmount(amount);
-
-            var wallet = await _userWalletRepository.GetByUserIdAsync(userId, cancellationToken);
-            if (wallet == null)
-            {
-                throw new InvalidOperationException("Wallet not found");
-            }
-
-            var unlocked = await _userWalletRepository.TryUnlockFundsAsync(wallet.Id, amount, userId.ToString(), cancellationToken);
-            if (!unlocked)
-                throw new InvalidOperationException("Insufficient locked balance to unlock funds");
-
-            var updatedWallet = await _userWalletRepository.GetByUserIdAsync(userId, cancellationToken);
-            if (updatedWallet == null)
-                throw new InvalidOperationException("Wallet not found after unlocking funds");
-
-            _logger?.LogInformation($"Unlocked {amount} ETH for user {userId}. Locked balance is {updatedWallet.LockedBalance} ETH.");
-            return updatedWallet.LockedBalance;
-        }
-
-        public async Task<string> SendEtherium(Guid userId, string recipientAddress, decimal amount)
+        public async Task<string> SendEthereum(Guid userId, string recipientAddress, decimal amount)
         {
             _logger?.LogInformation($"Initiating transfer of {amount} ETH from user {userId} to {recipientAddress}");
 
-            var wallet = await GetUserWallet(userId);
-            var transactionHash = await _walletBlockchainClient.SendEtheriumAsync(wallet.PrivateKey, recipientAddress, amount, Chain.Sepolia);
+            var wallet = await GetUserWalletAddress(userId);
+            var transactionHash = await _walletBlockchainClient.SendEthereumAsync(wallet.PrivateKey, recipientAddress, amount, Chain.Sepolia);
 
             _logger?.LogInformation($"ETH transfer succeeded. TxHash: {transactionHash} From user: {userId} To: {recipientAddress} Amount: {amount}");
             return transactionHash;
@@ -103,31 +93,59 @@ namespace WalletService.Application.Services
             return result;
         }
 
+        private async Task<UserWalletAddress> GetUserWalletAddress(Guid userId)
+        {
+            var userWallet = await GetUserWallet(userId);
+            var walletAddress = await _userWalletAddressRepository.GetByUserWalletId(userWallet.Id, CryptoNetworkType.Ethereum);
+            if (walletAddress == null)
+            {
+                _logger?.LogInformation($"No wallet address found for user {userId}. Generating new Ethereum address.");
+                walletAddress = await CreateWalletAddressAsync(userWallet.Id, CryptoNetworkType.Ethereum);
+
+                _logger?.LogInformation($"Created new wallet for user {userId}. Generating Ethereum address.");
+            }
+
+            return walletAddress;
+        }
+
         private static void EnsurePositiveAmount(decimal amount)
         {
             if (amount <= 0)
                 throw new ArgumentOutOfRangeException(nameof(amount), amount, "Amount must be greater than zero");
         }
 
-        private UserWallet CreateWallet(Guid userId)
+        private Task<UserWallet> CreateWalletAsync(Guid userId)
+        {
+            var userWallet = new UserWallet
+            {
+                Id = default,
+                UserId = userId,
+                WalletName = $"User {userId} Wallet",
+                CreatedBy = userId.ToString(),
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+            return _userWalletRepository.CreateAsync(userWallet);
+        }
+
+        private Task<UserWalletAddress> CreateWalletAddressAsync(long userWalletId, CryptoNetworkType networkType)
         {
             var ecKey = EthECKey.GenerateKey();
 
             var privateKey = ecKey.GetPrivateKey();
-            var address = ecKey.GetPublicAddress();
+            var publicAddress = ecKey.GetPublicAddress();
 
-            return new UserWallet
+            var userWalletAddress = new UserWalletAddress
             {
                 Id = default,
-                UserId = userId,
-                Address = address,
+                UserWalletId = userWalletId,
+                CryptoNetworkType = networkType,
+                PublicAddress = publicAddress,
                 PrivateKey = privateKey,
-                LockedBalance = 0m,
-                CreatedBy = userId.ToString(),
-                CreatedDate = DateTimeOffset.UtcNow,
-                ModifiedBy = userId.ToString(),
-                ModifiedDate = DateTimeOffset.UtcNow,
+                CreatedBy = userWalletId.ToString(),
+                CreatedDate = DateTimeOffset.UtcNow
             };
+            return _userWalletAddressRepository.AddAsync(userWalletAddress);
         }
     }
 }
+

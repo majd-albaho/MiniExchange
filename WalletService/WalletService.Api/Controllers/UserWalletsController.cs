@@ -20,7 +20,7 @@ namespace WalletService.Api.Controllers
         {
             try
             {
-                var balance = await _userWalletService.CheckBalance(userId);
+                var balance = await _userWalletService.CheckEthereumBalance(userId);
                 return Ok(new { Balance = balance });
             }
             catch (UnauthorizedAccessException ex)
@@ -38,7 +38,7 @@ namespace WalletService.Api.Controllers
         {
             try
             {
-                var transaction = await _userWalletService.SendEtherium(sendRequest.UserId, sendRequest.RecipientAddress, sendRequest.Amount);
+                var transaction = await _userWalletService.SendEthereum(sendRequest.UserId, sendRequest.RecipientAddress, sendRequest.Amount);
                 return Ok(new { transaction });
             }
             catch (UnauthorizedAccessException ex)

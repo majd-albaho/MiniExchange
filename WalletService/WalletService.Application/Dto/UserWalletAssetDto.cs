@@ -1,13 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
-using SharedLibrary.Entities;
-
-namespace WalletService.Domain.Entities
+﻿namespace WalletService.Application.Dto
 {
-    [Index(nameof(UserWalletId), IsUnique = true)]
-    [Index(nameof(AssetId), IsUnique = false)]
-    public class UserWalletAsset : EntityBase<long>
+    public class UserWalletAssetDto
     {
+        public required long Id { get; set; }
         public required long UserWalletId { get; set; }
+
         public required long AssetId { get; set; }
 
         public decimal Amount { get; set; }

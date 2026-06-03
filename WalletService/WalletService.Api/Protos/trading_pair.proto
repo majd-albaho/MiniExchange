@@ -5,22 +5,15 @@ option csharp_namespace = "WalletService.Api.Protos";
 package trading_pair;
 
 service TradingPairGrpc {
-  rpc Ping (PingRequest) returns (PingResponse);
   rpc LockFund (FundLockGrpcRequest) returns (FundLockGrpcResponse);
   rpc UnlockFund (FundLockGrpcRequest) returns (FundLockGrpcResponse);
 }
 
-message PingRequest {
-  string message = 1;
-}
-
-message PingResponse {
-  string message = 1;
-}
 
 message FundLockGrpcRequest {
   string user_id = 1;
-  string amount = 2;
+  string asset_id = 2;
+  string amount = 3;
 }
 
 message FundLockGrpcResponse {

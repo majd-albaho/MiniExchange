@@ -9,36 +9,43 @@ namespace WalletService.Api.Grpc
     {
         private readonly IUserWalletService _userWalletService;
 
-        public WalletService(IUserWalletService userWalletService) {
+        public WalletService(IUserWalletService userWalletService)
+        {
             _userWalletService = userWalletService;
         }
 
-        public override Task<PingResponse> Ping(PingRequest request, ServerCallContext context) {
-            return Task.FromResult(new PingResponse { Message = $"Pong: {request.Message}" });
+        public override async Task<FundLockGrpcResponse> LockFund(FundLockGrpcRequest request, ServerCallContext context)
+        {
+            var (userId, assetId, amount) = ParseFundLockRequest(request);
+            await _userWalletService.LockFund(userId, assetId, amount, context.CancellationToken);
+            return new FundLockGrpcResponse { LockedBalance = amount.ToString(CultureInfo.InvariantCulture) };
         }
 
-        public override async Task<FundLockGrpcResponse> LockFund(FundLockGrpcRequest request, ServerCallContext context) {
-            var (userId, amount) = ParseFundLockRequest(request);
-            var lockedBalance = await _userWalletService.LockFund(userId, amount, context.CancellationToken);
-            return new FundLockGrpcResponse { LockedBalance = lockedBalance.ToString(CultureInfo.InvariantCulture) };
+        public override async Task<FundLockGrpcResponse> UnlockFund(FundLockGrpcRequest request, ServerCallContext context)
+        {
+            var (userId, assetId, amount) = ParseFundLockRequest(request);
+            await _userWalletService.UnlockFund(userId, assetId, amount, context.CancellationToken);
+            return new FundLockGrpcResponse { LockedBalance = amount.ToString(CultureInfo.InvariantCulture) };
         }
 
-        public override async Task<FundLockGrpcResponse> UnlockFund(FundLockGrpcRequest request, ServerCallContext context) {
-            var (userId, amount) = ParseFundLockRequest(request);
-            var lockedBalance = await _userWalletService.UnlockFund(userId, amount, context.CancellationToken);
-            return new FundLockGrpcResponse { LockedBalance = lockedBalance.ToString(CultureInfo.InvariantCulture) };
-        }
-
-        private static (Guid UserId, decimal Amount) ParseFundLockRequest(FundLockGrpcRequest request) {
-            if (!Guid.TryParse(request.UserId, out var userId)) {
+        private static (Guid UserId, long AssetId, decimal Amount) ParseFundLockRequest(FundLockGrpcRequest request)
+        {
+            if (!Guid.TryParse(request.UserId, out Guid userId))
+            {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "user_id must be a valid GUID"));
             }
 
-            if (!decimal.TryParse(request.Amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount)) {
+            if (!long.TryParse(request.AssetId, out long assetId))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "asset_id must be a valid long value"));
+            }
+
+            if (!decimal.TryParse(request.Amount, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal amount))
+            {
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "amount must be a valid decimal value"));
             }
 
-            return (userId, amount);
+            return (userId, assetId, amount);
         }
     }
 }

@@ -16,6 +16,8 @@ namespace WalletService.Infrastructure
                     sql => sql.MigrationsAssembly("WalletService.SqlMigration")));
 
             services.AddScoped<IUserWalletRepository, UserWalletRepository>();
+            services.AddScoped<IUserWalletAssetsRepository, UserWalletAssetsRepository>();
+            services.AddScoped<IUserWalletAddressRepository, UserWalletAddressRepository>();
             return services;
         }
     }

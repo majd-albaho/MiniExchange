@@ -10,8 +10,9 @@ namespace WalletService.Infrastructure.Persistence
 
         public DbSet<Asset> Assets => Set<Asset>();
         public DbSet<UserWallet> UserWallets => Set<UserWallet>();
+        public DbSet<UserWalletAddress> UserWalletAddresses => Set<UserWalletAddress>();
         public DbSet<UserWalletAsset> UserWalletAssets => Set<UserWalletAsset>();
-        public DbSet<Wallet> Wallets => Set<Wallet>();
+        public DbSet<UserWalletTransaction> UserWalletTransactions => Set<UserWalletTransaction>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

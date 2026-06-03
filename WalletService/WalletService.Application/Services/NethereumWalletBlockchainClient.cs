@@ -9,14 +9,14 @@ namespace WalletService.Application.Services
     {
         private const string AlchemyApiUrl = "https://eth-sepolia.g.alchemy.com/v2/7tloHtXeoED-phvbnG5Fe";
 
-        public async Task<decimal> GetEtherBalanceAsync(string address, CancellationToken cancellationToken = default)
+        public async Task<decimal> GetEthereumBalanceAsync(string address, CancellationToken cancellationToken = default)
         {
             var web3 = new Web3(AlchemyApiUrl);
             var weiBalance = await web3.Eth.GetBalance.SendRequestAsync(address);
             return Web3.Convert.FromWei(weiBalance.Value);
         }
 
-        public async Task<string> SendEtheriumAsync(string privateKey, string recipientAddress, decimal amount, Chain chain, CancellationToken cancellationToken = default)
+        public async Task<string> SendEthereumAsync(string privateKey, string recipientAddress, decimal amount, Chain chain, CancellationToken cancellationToken = default)
         {
             var account = new Account(privateKey, chain);
             var web3 = new Web3(account, AlchemyApiUrl);
@@ -25,9 +25,7 @@ namespace WalletService.Application.Services
                 .TransferEtherAndWaitForReceiptAsync(recipientAddress, amount);
 
             if (transactionReceipt.Status.Value != 1)
-            {
                 throw new Exception("ETH transfer failed");
-            }
 
             return transactionReceipt.TransactionHash;
         }
