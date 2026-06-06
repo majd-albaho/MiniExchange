@@ -1,4 +1,4 @@
-﻿namespace WalletService.Domain.Enums
+﻿namespace BlockchainScanner.Entites
 {
     public enum TransactionType
     {

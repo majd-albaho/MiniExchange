@@ -1,18 +1,17 @@
 using Microsoft.EntityFrameworkCore;
-using SharedLibrary.Entities;
 using System.ComponentModel.DataAnnotations;
 using System.Numerics;
-using WalletService.Domain.Enums;
 
-namespace WalletService.Domain.Entities
+namespace BlockchainScanner.Entites
 {
-    [Index(nameof(UserWalletAddressId), nameof(AssetId), IsUnique = false)]
     [Index(nameof(TransactionDateTime), IsUnique = false)]
     [Index(nameof(TransactionType), IsUnique = false)]
-    public class UserWalletTransaction : EntityBase<long>
+    public class BlockchainTransaction
     {
-        public long UserWalletAddressId { get; set; }
-        public long AssetId { get; set; }
+        public Guid Id { get; set; }
+
+        [MaxLength(100)]
+        public required string Asset { get; set; }
 
         public DateTimeOffset TransactionDateTime { get; set; }
         public TransactionType TransactionType { get; set; }
@@ -26,7 +25,7 @@ namespace WalletService.Domain.Entities
         [MaxLength(255)]
         public required string To { get; set; }
 
-        public bool Failed { get; set; }
+        public bool Confirmed { get; set; }
         public BigInteger BlockNumber { get; set; }
         public BigInteger GasUsed { get; set; }
         public BigInteger EffectiveGasPrice { get; set; }
