@@ -10,12 +10,10 @@ var host = new HostBuilder()
     {
         services.AddDbContext<AppDbContext>(options =>
         {
-            options.UseSqlServer(
-                Environment.GetEnvironmentVariable(
-                    "SqlConnectionString"));
+            options.UseSqlServer(Environment.GetEnvironmentVariable("SqlConnectionString"));
         });
 
-        services.AddSingleton<EthereumScanner>();
+        services.AddScoped<EthereumScanner>();
     })
     .Build();
 
