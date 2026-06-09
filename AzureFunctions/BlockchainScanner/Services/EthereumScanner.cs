@@ -19,10 +19,22 @@ namespace BlockchainScanner.Services
 
         public async Task ScanAsync()
         {
+            long latestBlock = (long)(await _web3.Eth.Blocks.GetBlockNumber.SendRequestAsync()).Value;
+
             var state = await _db.BlockChainStates.FirstOrDefaultAsync(x => x.Network == "ETH");
+            if (state == null)
+            {
+                state = new BlockChainState
+                {
+                    Network = "ETH",
+                    LastProcessedBlock = latestBlock
+                };
+
+                _db.BlockChainStates.Add(state);
+                await _db.SaveChangesAsync();
+            }
 
             var lastProcessed = state?.LastProcessedBlock ?? 0;
-            long latestBlock = (long)(await _web3.Eth.Blocks.GetBlockNumber.SendRequestAsync()).Value;
 
             // Wait for confirmations
             latestBlock -= 12;
@@ -36,10 +48,7 @@ namespace BlockchainScanner.Services
             }
 
             if (state == null)
-            {
-                state = new BlockChainState { Network = "ETH" };
-                _db.BlockChainStates.Add(state);
-            }
+                throw new Exception("Block chain state should not be null");
 
             state.LastProcessedBlock = latestBlock;
             await _db.SaveChangesAsync();
@@ -50,6 +59,9 @@ namespace BlockchainScanner.Services
             var block = await _web3.Eth.Blocks
                 .GetBlockWithTransactionsByNumber
                 .SendRequestAsync(new BlockParameter(new Nethereum.Hex.HexTypes.HexBigInteger(blockNumber)));
+
+            if (block.Transactions.Length == 0)
+                return;
 
             foreach (var tx in block.Transactions)
             {

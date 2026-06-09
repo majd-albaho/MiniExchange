@@ -12,10 +12,7 @@ namespace WalletService.Application.Services
         private readonly IWalletBlockchainClient _walletBlockchainClient;
         private readonly ILogger<WalletTransactionService> _logger;
 
-        public WalletTransactionService(
-            IUserWalletService userWalletService,
-            IWalletBlockchainClient walletBlockchainClient,
-            ILogger<WalletTransactionService> logger)
+        public WalletTransactionService(IUserWalletService userWalletService, IWalletBlockchainClient walletBlockchainClient, ILogger<WalletTransactionService> logger)
         {
             _userWalletService = userWalletService;
             _walletBlockchainClient = walletBlockchainClient;
