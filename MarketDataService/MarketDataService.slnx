@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/.template.config/">
+    <File Path="template.json" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="Readme.txt" />
+  </Folder>
+  <Project Path="MarketDataService.Api/MarketDataService.Api.csproj" Id="d6e00e92-8c0f-4fc0-b529-dba8222d612d" />
+  <Project Path="MarketDataService.Application/MarketDataService.Application.csproj" Id="1925d2d3-33f3-4aeb-bcc4-0ea3f3077836" />
+  <Project Path="MarketDataService.Domain/MarketDataService.Domain.csproj" Id="d68c31ad-fd8f-4ab4-a710-29fbbcbaa2ff" />
+  <Project Path="MarketDataService.Infrastructure/MarketDataService.Infrastructure.csproj" Id="5403c3b8-0af1-4dd6-b08b-e7e6904744ef" />
+  <Project Path="MarketDataService.Tests/MarketDataService.Tests.csproj" Id="8c707fb2-ae76-4a55-b26c-8af623eea6dd" />
+</Solution>
