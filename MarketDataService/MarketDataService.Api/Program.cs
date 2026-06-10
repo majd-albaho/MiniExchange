@@ -1,4 +1,5 @@
-using MarketDataService.Api.Services;
+using MarketDataService.Application.Interfaces.Services;
+using MarketDataService.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +10,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddGrpc();
 builder.Services.AddSingleton<IPriceCache, InMemoryPriceCache>();
-builder.Services.AddSingleton<ISubscriptionService, BinancePriceSubscriptionService>();
+builder.Services.AddSingleton<ISubscriptionService, PriceSubscriptionService>();
 
 
 var app = builder.Build();

@@ -1,16 +1,17 @@
-using MarketDataService.Api.Services;
+using MarketDataService.Application.Interfaces.Services;
 using MarketDataService.Application.Models;
+using MarketDataService.Infrastructure.Services;
 using System.Globalization;
 
 namespace MarketDataService.Tests
 {
-    public class BinancePriceTests
+    public class CryptoPriceTests
     {
         [Fact]
         public void PriceCacheReturnsCachedPriceForCaseInsensitiveSymbol()
         {
             IPriceCache cache = new InMemoryPriceCache();
-            var price = new BinancePrice(
+            var price = new CryptoCurrencyPrice(
                 "BTCUSDT",
                 100000.12m,
                 99999.99m,
@@ -25,7 +26,7 @@ namespace MarketDataService.Tests
         }
 
         [Fact]
-        public void BinanceTickerParsesPricesUsingInvariantCulture()
+        public void CryptoCurrencyPriceParsesPricesUsingInvariantCulture()
         {
             var previousCulture = CultureInfo.CurrentCulture;
 

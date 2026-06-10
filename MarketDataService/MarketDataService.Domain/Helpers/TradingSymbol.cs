@@ -1,6 +1,6 @@
-namespace MarketDataService.Api.Services
+namespace MarketDataService.Domain.Helpers
 {
-    internal static class BinanceSymbol
+    public static class TradingSymbol
     {
         public static bool TryNormalize(string? symbol, out string normalizedSymbol)
         {

@@ -1,31 +1,32 @@
+using MarketDataService.Application.Interfaces.Services;
 using MarketDataService.Application.Models;
+using MarketDataService.Domain.Helpers;
+using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text.Json;
 
-namespace MarketDataService.Api.Services
+namespace MarketDataService.Infrastructure.Services
 {
-    public sealed class BinancePriceSubscriptionService : ISubscriptionService
+    public sealed class PriceSubscriptionService : ISubscriptionService
     {
         private const int BufferSize = 8192;
         private const int MaxTickerMessageBytes = 64 * 1024;
 
         private readonly ConcurrentDictionary<string, Lazy<Task>> _subscriptions = new(StringComparer.OrdinalIgnoreCase);
         private readonly IPriceCache _priceCache;
-        private readonly ILogger<BinancePriceSubscriptionService> _logger;
-        private readonly IHostApplicationLifetime _applicationLifetime;
+        private readonly ILogger<PriceSubscriptionService> _logger;
 
-        public BinancePriceSubscriptionService(IPriceCache priceCache, ILogger<BinancePriceSubscriptionService> logger, IHostApplicationLifetime applicationLifetime)
+        public PriceSubscriptionService(IPriceCache priceCache, ILogger<PriceSubscriptionService> logger)
         {
             _priceCache = priceCache;
             _logger = logger;
-            _applicationLifetime = applicationLifetime;
         }
 
         public Task SubscribeAsync(string symbol, CancellationToken cancellationToken = default)
         {
-            if (!BinanceSymbol.TryNormalize(symbol, out var normalizedSymbol))
+            if (!TradingSymbol.TryNormalize(symbol, out var normalizedSymbol))
             {
                 throw new ArgumentException("Symbol must contain 1 to 32 ASCII letters or digits.", nameof(symbol));
             }
@@ -44,7 +45,7 @@ namespace MarketDataService.Api.Services
 
         private async Task RunSubscriptionAsync(string symbol)
         {
-            var stoppingToken = _applicationLifetime.ApplicationStopping;
+            var stoppingToken = new CancellationTokenSource().Token;
 
             try
             {
@@ -83,7 +84,7 @@ namespace MarketDataService.Api.Services
                             continue;
                         }
 
-                        if (ticker == null || !BinanceSymbol.TryNormalize(ticker.Symbol, out var tickerSymbol))
+                        if (ticker == null || !TradingSymbol.TryNormalize(ticker.Symbol, out var tickerSymbol))
                         {
                             continue;
                         }
@@ -93,11 +94,11 @@ namespace MarketDataService.Api.Services
                             continue;
                         }
 
-                        BinancePrice price;
+                        CryptoCurrencyPrice price;
 
                         try
                         {
-                            price = new BinancePrice(
+                            price = new CryptoCurrencyPrice(
                                 tickerSymbol,
                                 ticker.LastPrice,
                                 ticker.BidPrice,

@@ -1,16 +1,17 @@
-using MarketDataService.Api.Services;
+using MarketDataService.Application.Interfaces.Services;
+using MarketDataService.Domain.Helpers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MarketDataService.Api.Controllers
 {
     [ApiController]
-    [Route("api/binance")]
-    public sealed class BinancePriceController : ControllerBase
+    [Route("api/[controller]")]
+    public sealed class MarketsController : ControllerBase
     {
         private readonly ISubscriptionService _subscriptionService;
         private readonly IPriceCache _priceCache;
 
-        public BinancePriceController(ISubscriptionService subscriptionService, IPriceCache priceCache)
+        public MarketsController(ISubscriptionService subscriptionService, IPriceCache priceCache)
         {
             _subscriptionService = subscriptionService;
             _priceCache = priceCache;
@@ -19,7 +20,7 @@ namespace MarketDataService.Api.Controllers
         [HttpPost("subscribe/{symbol}")]
         public async Task<IActionResult> Subscribe(string symbol, CancellationToken cancellationToken)
         {
-            if (!BinanceSymbol.TryNormalize(symbol, out var normalizedSymbol))
+            if (!TradingSymbol.TryNormalize(symbol, out var normalizedSymbol))
             {
                 return BadRequest(new { Message = "Symbol must contain 1 to 32 ASCII letters or digits." });
             }
@@ -36,7 +37,7 @@ namespace MarketDataService.Api.Controllers
         [HttpGet("price/{symbol}")]
         public IActionResult GetLatestPrice(string symbol)
         {
-            if (!BinanceSymbol.TryNormalize(symbol, out var normalizedSymbol))
+            if (!TradingSymbol.TryNormalize(symbol, out var normalizedSymbol))
             {
                 return BadRequest(new { Message = "Symbol must contain 1 to 32 ASCII letters or digits." });
             }

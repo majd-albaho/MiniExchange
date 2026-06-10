@@ -1,4 +1,4 @@
-namespace MarketDataService.Api.Services
+namespace MarketDataService.Application.Interfaces.Services
 {
     public interface ISubscriptionService
     {
