@@ -1,6 +1,8 @@
 using MarketDataService.Application.Interfaces.Services;
 using MarketDataService.Application.Models;
 using MarketDataService.Domain.Helpers;
+using MarketDataService.Infrastructure.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Collections.Concurrent;
@@ -17,11 +19,13 @@ namespace MarketDataService.Infrastructure.Services
         private readonly ConcurrentDictionary<string, Lazy<Task>> _subscriptions = new(StringComparer.OrdinalIgnoreCase);
         private readonly IPriceCache _priceCache;
         private readonly ILogger<PriceSubscriptionService> _logger;
+        private readonly IHubContext<MarketDataHub> _hubContext;
 
-        public PriceSubscriptionService(IPriceCache priceCache, ILogger<PriceSubscriptionService> logger)
+        public PriceSubscriptionService(IPriceCache priceCache, ILogger<PriceSubscriptionService> logger, IHubContext<MarketDataHub> hubContext)
         {
             _priceCache = priceCache;
             _logger = logger;
+            _hubContext = hubContext;
         }
 
         public Task SubscribeAsync(string symbol, CancellationToken cancellationToken = default)
@@ -122,6 +126,8 @@ namespace MarketDataService.Infrastructure.Services
                         }
 
                         _priceCache.Set(price);
+
+                        await _hubContext.Clients.Group(price.Symbol).SendAsync("PriceUpdated", price);
 
                         _logger.LogInformation(
                             "Price update {Symbol}: Last={LastPrice}, Bid={Bid}, Ask={Ask}",

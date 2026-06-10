@@ -1,4 +1,5 @@
 using MarketDataService.Application.Interfaces.Services;
+using MarketDataService.Infrastructure.Hubs;
 using MarketDataService.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,10 +14,15 @@ builder.Services.AddSingleton<IPriceCache, InMemoryPriceCache>();
 builder.Services.AddSingleton<ISubscriptionService, PriceSubscriptionService>();
 
 
+builder.Services.AddSignalR();
+
 var app = builder.Build();
 
+app.MapHub<MarketDataHub>("/hubs/market-data");
+
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment()) {
+if (app.Environment.IsDevelopment())
+{
     app.MapOpenApi();
 }
 
