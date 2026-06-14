@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace>MatchingEngineService.Application</RootNamespace>
+		<AssemblyName>MatchingEngineService.Application</AssemblyName>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\MatchingEngineService.Domain\MatchingEngineService.Domain.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Commands\" />
+	  <Folder Include="Dto\" />
+	  <Folder Include="Interfaces\ExternalServices\" />
+	  <Folder Include="Interfaces\Repositories\" />
+	  <Folder Include="Interfaces\Services\" />
+	  <Folder Include="Services\" />
+	</ItemGroup>
+
+</Project>
