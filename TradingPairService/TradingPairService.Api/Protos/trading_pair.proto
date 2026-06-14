@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option csharp_namespace = "TradingPairService.Api.Protos";
+
+package trading_pair;
+
+service TradingPairGrpc {
+  rpc Ping (PingRequest) returns (PingResponse);
+}
+
+message PingRequest {
+  string message = 1;
+}
+
+message PingResponse {
+  string message = 1;
+}
