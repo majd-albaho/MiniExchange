@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Majd Albaho",
+  "identity": "Microservice Template",
+  "name": "Microservice",
+  "shortName": "micro-service-template",
+  "sourceName": "TradingService",
+  "preferNameDirectory": true,
+  "sources": [
+    {
+      "exclude": [
+        ".vs/**",
+        "bin/**",
+        "obj/**",
+        ".git/**",
+        ".idea/**",
+        "*.user",
+        "*.suo"
+      ]
+    }
+  ]
+}
