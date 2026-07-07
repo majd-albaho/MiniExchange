@@ -63,3 +63,11 @@ export interface MarketTicker {
   low24h: number;
   volume24h: number;
 }
+
+export interface LivePrice {
+  symbol: string;
+  lastPrice: number;
+  bidPrice: number;
+  askPrice: number;
+  eventTime: string;
+}

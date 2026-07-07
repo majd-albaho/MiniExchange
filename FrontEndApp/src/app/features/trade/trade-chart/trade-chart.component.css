@@ -8,4 +8,7 @@
 }
 .interval-btn:hover { background: var(--accent-alpha); color: var(--accent); }
 .interval-btn.active { background: var(--accent); color: white; }
+.live-price { margin-left: auto; font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); }
+.live-price.up { color: #4caf50; }
+.live-price.down { color: #f44336; }
 .chart-area { flex: 1; min-height: 320px; }

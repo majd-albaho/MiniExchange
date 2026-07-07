@@ -1,10 +1,11 @@
 import {
-  Component, inject, signal, OnInit, OnDestroy,
-  ViewChild, ElementRef, AfterViewInit, Input, OnChanges, SimpleChanges
+  Component, inject, signal, effect, OnChanges, SimpleChanges,
+  ViewChild, ElementRef, AfterViewInit, Input, OnDestroy
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { createChart, IChartApi, ISeriesApi, ColorType, CandlestickData, Time, CandlestickSeries } from 'lightweight-charts';
 import { TradeService } from '../../../core/services/trade.service';
+import { MarketDataHubService } from '../../../core/services/market-data-hub.service';
 import { MatButtonModule } from '@angular/material/button';
 
 const INTERVALS = ['1m', '5m', '15m', '1h', '4h', '1d'];
@@ -21,21 +22,47 @@ export class TradeChartComponent implements AfterViewInit, OnChanges, OnDestroy 
   @Input() pair = 'BTCUSDT';
 
   private tradeService = inject(TradeService);
+  private hubService = inject(MarketDataHubService);
   private chart: IChartApi | null = null;
   private candleSeries: ISeriesApi<'Candlestick'> | null = null;
+  private activeSymbol = signal(this.pair);
+  private lastCandle: { time: number; open: number; high: number; low: number } | null = null;
 
   selectedInterval = signal('1h');
   intervals = INTERVALS;
+  livePrice = signal<number | null>(null);
+  priceDirection = signal<'up' | 'down' | null>(null);
+
+  constructor() {
+    effect(() => {
+      const symbol = this.activeSymbol();
+      const tick = this.hubService.prices()[symbol];
+      if (tick) {
+        this.applyTick(tick.lastPrice);
+      }
+    });
+  }
 
   ngAfterViewInit(): void {
     this.initChart();
+    this.subscribeToPair(this.pair);
     this.loadData();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['pair'] && !changes['pair'].firstChange) {
+      const previous = changes['pair'].previousValue as string;
+      this.hubService.unsubscribe(previous);
+      this.subscribeToPair(this.pair);
       this.loadData();
     }
+  }
+
+  private subscribeToPair(symbol: string): void {
+    this.activeSymbol.set(symbol);
+    this.livePrice.set(null);
+    this.priceDirection.set(null);
+    this.hubService.subscribe(symbol);
   }
 
   private initChart(): void {
@@ -79,6 +106,33 @@ export class TradeChartComponent implements AfterViewInit, OnChanges, OnDestroy 
     }));
     this.candleSeries?.setData(data);
     this.chart?.timeScale().fitContent();
+
+    const last = candles[candles.length - 1];
+    this.lastCandle = last ? { time: last.time, open: last.open, high: last.high, low: last.low } : null;
+  }
+
+  private applyTick(price: number): void {
+    const previous = this.livePrice();
+    this.livePrice.set(price);
+    if (previous !== null) {
+      this.priceDirection.set(price > previous ? 'up' : price < previous ? 'down' : this.priceDirection());
+    }
+
+    if (!this.candleSeries || !this.lastCandle) {
+      return;
+    }
+
+    const time = Math.floor(Date.now() / 1000);
+    this.lastCandle.high = Math.max(this.lastCandle.high, price);
+    this.lastCandle.low = Math.min(this.lastCandle.low, price);
+
+    this.candleSeries.update({
+      time: Math.max(time, this.lastCandle.time) as Time,
+      open: this.lastCandle.open,
+      high: this.lastCandle.high,
+      low: this.lastCandle.low,
+      close: price,
+    });
   }
 
   changeInterval(iv: string): void {
@@ -87,6 +141,7 @@ export class TradeChartComponent implements AfterViewInit, OnChanges, OnDestroy 
   }
 
   ngOnDestroy(): void {
+    this.hubService.unsubscribe(this.activeSymbol());
     this.chart?.remove();
   }
 }

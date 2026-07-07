@@ -16,9 +16,16 @@ builder.Services.AddSingleton<ISubscriptionService, PriceSubscriptionService>();
 
 builder.Services.AddSignalR();
 
-var app = builder.Build();
+const string FrontendCorsPolicy = "FrontendCorsPolicy";
+builder.Services.AddCors(options => {
+    options.AddPolicy(FrontendCorsPolicy, policy => {
+        policy.WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
-app.MapHub<MarketDataHub>("/hubs/market-data");
+var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -28,7 +35,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors(FrontendCorsPolicy);
+
 app.UseAuthorization();
+
+app.MapHub<MarketDataHub>("/hubs/market-data");
 
 app.MapControllers();
 app.MapGrpcService<MarketDataService.Api.Grpc.MarketDataService>();

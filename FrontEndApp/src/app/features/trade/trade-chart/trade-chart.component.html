@@ -7,6 +7,11 @@
         (click)="changeInterval(iv)"
       >{{ iv }}</button>
     }
+    @if (livePrice() !== null) {
+      <span class="live-price" [class.up]="priceDirection() === 'up'" [class.down]="priceDirection() === 'down'">
+        {{ livePrice() }}
+      </span>
+    }
   </div>
   <div #chartRef class="chart-area"></div>
 </div>
