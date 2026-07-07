@@ -33,6 +33,6 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapGrpcService<MarketDataService.Api.Grpc.MarketDataService>();
 
-app.MapGet("/", () => $"Trading Pair Service is running version {typeof(Program).Assembly.GetName().Version}");
+app.MapGet("/", () => $"Market Data Service is running version {typeof(Program).Assembly.GetName().Version}");
 
 app.Run();

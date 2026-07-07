@@ -27,6 +27,15 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddGrpc();
 
+const string FrontendCorsPolicy = "FrontendCorsPolicy";
+builder.Services.AddCors(options => {
+    options.AddPolicy(FrontendCorsPolicy, policy => {
+        policy.WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options => {
@@ -78,6 +87,8 @@ if (app.Environment.IsDevelopment()) {
     app.MapOpenApi();
 }
 
+
+app.UseCors(FrontendCorsPolicy);
 
 app.UseAuthentication();
 app.UseAuthorization();

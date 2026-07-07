@@ -36,46 +36,26 @@ export class AuthService {
     return !!this.getToken();
   }
 
-  async login(payload: LoginRequest): Promise<LoginResponse> {
+  async login(payload: LoginRequest): Promise<void> {
     try {
       const res = await firstValueFrom(
-        this.http.post<LoginResponse>(`${this.baseUrl}/auth/login`, payload)
+        this.http.post<LoginResponse>(`${this.baseUrl}/Auth/Login`, payload)
       );
-      this.storeSession(res);
-      return res;
+      this.storeSession(res, this.buildUserFromToken(res.accessToken, payload.email));
     } catch (err) {
       console.error('[AuthService] login error:', err);
-      // Dummy data fallback
-      const dummyRes: LoginResponse = {
-        accessToken: 'dummy-access-token-12345',
-        refreshToken: 'dummy-refresh-token-67890',
-        expiresIn: 3600,
-        user: {
-          id: 'user-001',
-          email: payload.email,
-          nickname: 'CryptoTrader',
-          firstName: 'John',
-          lastName: 'Doe',
-          twoFactorEnabled: false,
-          pinEnabled: false,
-          language: 'en',
-          createdAt: new Date().toISOString(),
-          kycVerified: true,
-        },
-      };
-      this.storeSession(dummyRes);
-      return dummyRes;
+      throw err;
     }
   }
 
   async register(payload: RegisterRequest): Promise<void> {
     try {
       await firstValueFrom(
-        this.http.post(`${this.baseUrl}/auth/register`, payload)
+        this.http.post(`${this.baseUrl}/Auth/Register`, payload)
       );
     } catch (err) {
       console.error('[AuthService] register error:', err);
-      // Dummy: simulate successful registration
+      throw err;
     }
   }
 
@@ -83,20 +63,47 @@ export class AuthService {
     try {
       const refreshToken = localStorage.getItem(REFRESH_KEY);
       const res = await firstValueFrom(
-        this.http.post<LoginResponse>(`${this.baseUrl}/auth/refresh`, { refreshToken })
+        this.http.post<LoginResponse>(`${this.baseUrl}/Auth/RefreshToken`, { refreshToken })
       );
-      this.storeSession(res);
+      this.storeSession(res, this.buildUserFromToken(res.accessToken, this._user()?.email ?? ''));
     } catch (err) {
       console.error('[AuthService] refresh error:', err);
       this.logout();
     }
   }
 
-  private storeSession(res: LoginResponse): void {
+  private buildUserFromToken(accessToken: string, fallbackEmail: string): User {
+    const claims = this.decodeTokenClaims(accessToken);
+    const email = claims['email'] ?? fallbackEmail;
+    return {
+      id: claims['sub'] ?? '',
+      email,
+      nickname: email.split('@')[0],
+      firstName: '',
+      lastName: '',
+      twoFactorEnabled: false,
+      pinEnabled: false,
+      language: 'en',
+      createdAt: new Date().toISOString(),
+      kycVerified: false,
+    };
+  }
+
+  private decodeTokenClaims(token: string): Record<string, string> {
+    try {
+      const payload = token.split('.')[1];
+      const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+      return JSON.parse(json);
+    } catch {
+      return {};
+    }
+  }
+
+  private storeSession(res: LoginResponse, user: User): void {
     localStorage.setItem(TOKEN_KEY, res.accessToken);
     localStorage.setItem(REFRESH_KEY, res.refreshToken);
-    localStorage.setItem(USER_KEY, JSON.stringify(res.user));
-    this._user.set(res.user);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    this._user.set(user);
   }
 
   logout(): void {

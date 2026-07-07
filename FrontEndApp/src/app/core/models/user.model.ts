@@ -21,8 +21,7 @@ export interface LoginRequest {
 export interface LoginResponse {
   accessToken: string;
   refreshToken: string;
-  expiresIn: number;
-  user: User;
+  expiresAt: string;
 }
 
 export interface RegisterRequest {

@@ -2,6 +2,9 @@
   <Folder Name="/.template.config/">
     <File Path="template.json" />
   </Folder>
+  <Folder Name="/Database/">
+    <Project Path="TradingPairService.SqlMigration/TradingPairService.SqlMigration.csproj" Id="2247be4c-b937-456a-9165-d2c7b3e7898f" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Readme.txt" />
   </Folder>

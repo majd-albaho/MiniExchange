@@ -6,7 +6,8 @@ namespace WalletService.SqlMigration
 {
     public class WalletDbContextFactory : IDesignTimeDbContextFactory<WalletDbContext>
     {
-        public WalletDbContext CreateDbContext(string[] args) {
+        public WalletDbContext CreateDbContext(string[] args)
+        {
             var optionsBuilder = new DbContextOptionsBuilder<WalletDbContext>();
             optionsBuilder.UseSqlServer("Server=localhost;Database=MiniExchangeWallet;Trusted_Connection=True;TrustServerCertificate=True;",
                 sql => sql.MigrationsAssembly("WalletService.SqlMigration"));
