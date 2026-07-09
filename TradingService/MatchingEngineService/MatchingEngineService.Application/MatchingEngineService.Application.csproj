@@ -21,4 +21,16 @@
 	  <Folder Include="Services\" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.8" />
+	  <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.0" />
+	  <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Reference Include="SharedLibrary">
+	    <HintPath>..\..\..\References\SharedLibrary.dll</HintPath>
+	  </Reference>
+	</ItemGroup>
+
 </Project>

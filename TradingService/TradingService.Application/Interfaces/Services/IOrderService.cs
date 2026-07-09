@@ -7,5 +7,6 @@ namespace TradingService.Application.Interfaces.Services
         Task<OrderResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
         Task<OrderResponse> CreateAsync(CreateOrderRequest request, CancellationToken cancellationToken = default);
         Task<bool> DeleteAsync(Guid id, string deletedBy, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<OrderResponse>> GetOpenByUserAsync(Guid userId, CancellationToken cancellationToken = default);
     }
 }

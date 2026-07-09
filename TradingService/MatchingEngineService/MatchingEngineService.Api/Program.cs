@@ -1,6 +1,8 @@
 using Serilog;
 using Serilog.Context;
 using System.Diagnostics;
+using MatchingEngineService.Application;
+using MatchingEngineService.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +14,8 @@ builder.Host.UseSerilog((context, services, configuration) => {
 });
 
 // Add services to the container.
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -53,7 +57,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapGrpcService<MatchingEngineService.Api.Grpc.MatchingEngineService>();
+app.MapGrpcService<MatchingEngineService.Api.Grpc.MatchingEngineGrpcService>();
 
 app.MapGet("/", () => $"Matching Engine Service is running version {typeof(Program).Assembly.GetName().Version}");
 

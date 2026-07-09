@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using TradingService.Application.Dto;
+using TradingService.Application.Interfaces.Clients;
 using TradingService.Application.Interfaces.Repositories;
 using TradingService.Application.Services;
 using TradingService.Domain.Entities;
@@ -11,7 +13,7 @@ namespace TradingService.Tests
         public async Task CreateAsync_NormalizesPairSymbolAndInitializesPendingOrder()
         {
             var repository = new InMemoryOrderRepository();
-            var service = new OrderService(repository);
+            var service = CreateService(repository);
 
             var response = await service.CreateAsync(new CreateOrderRequest
             {
@@ -36,7 +38,7 @@ namespace TradingService.Tests
         public async Task GetByIdAsync_ReturnsCreatedOrder()
         {
             var repository = new InMemoryOrderRepository();
-            var service = new OrderService(repository);
+            var service = CreateService(repository);
             var created = await service.CreateAsync(new CreateOrderRequest
             {
                 UserId = Guid.NewGuid(),
@@ -57,7 +59,7 @@ namespace TradingService.Tests
         [Fact]
         public async Task CreateAsync_RejectsLimitOrderWithoutPositivePrice()
         {
-            var service = new OrderService(new InMemoryOrderRepository());
+            var service = CreateService(new InMemoryOrderRepository());
 
             await Assert.ThrowsAsync<ArgumentException>(() => service.CreateAsync(new CreateOrderRequest
             {
@@ -73,11 +75,16 @@ namespace TradingService.Tests
         [Fact]
         public async Task DeleteAsync_ReturnsFalseWhenRepositoryCannotFindOrder()
         {
-            var service = new OrderService(new InMemoryOrderRepository());
+            var service = CreateService(new InMemoryOrderRepository());
 
             var deleted = await service.DeleteAsync(Guid.NewGuid(), "trader");
 
             Assert.False(deleted);
+        }
+
+        private static OrderService CreateService(IOrderRepository repository)
+        {
+            return new OrderService(repository, new NoOpMatchingEngineClient(), NullLogger<OrderService>.Instance);
         }
 
         private sealed class InMemoryOrderRepository : IOrderRepository
@@ -99,6 +106,30 @@ namespace TradingService.Tests
             {
                 return Task.FromResult(CreatedOrder?.Id == id);
             }
+
+            public Task<bool> UpdateAsync(Order order, CancellationToken cancellationToken = default)
+            {
+                if (CreatedOrder?.Id == order.Id)
+                {
+                    CreatedOrder = order;
+                }
+                return Task.FromResult(CreatedOrder?.Id == order.Id);
+            }
+
+            public Task<IReadOnlyList<Order>> GetOpenByUserAsync(Guid userId, CancellationToken cancellationToken = default)
+            {
+                IReadOnlyList<Order> orders = CreatedOrder is not null && CreatedOrder.UserId == userId
+                    ? new[] { CreatedOrder }
+                    : Array.Empty<Order>();
+                return Task.FromResult(orders);
+            }
+        }
+
+        private sealed class NoOpMatchingEngineClient : IMatchingEngineClient
+        {
+            public Task<bool> SubmitOrderAsync(Order order, CancellationToken cancellationToken = default) => Task.FromResult(true);
+
+            public Task<bool> CancelOrderAsync(Guid orderId, string pairSymbol, CancellationToken cancellationToken = default) => Task.FromResult(true);
         }
     }
 }

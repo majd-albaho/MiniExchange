@@ -13,6 +13,8 @@ namespace WalletService.Application
             services.AddScoped<IUserWalletService, UserWalletService>();
             services.AddScoped<IWalletFundService, WalletFundService>();
             services.AddScoped<IWalletTransactionService, WalletTransactionService>();
+            services.AddScoped<IAssetService, AssetService>();
+            services.AddScoped<IWalletSettlementService, WalletSettlementService>();
             return services;
         }
     }

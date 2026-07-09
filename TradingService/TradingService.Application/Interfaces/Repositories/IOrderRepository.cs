@@ -7,5 +7,7 @@ namespace TradingService.Application.Interfaces.Repositories
         Task<Order?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
         Task<Order> CreateAsync(Order order, CancellationToken cancellationToken = default);
         Task<bool> DeleteAsync(Guid id, string deletedBy, CancellationToken cancellationToken = default);
+        Task<bool> UpdateAsync(Order order, CancellationToken cancellationToken = default);
+        Task<IReadOnlyList<Order>> GetOpenByUserAsync(Guid userId, CancellationToken cancellationToken = default);
     }
 }

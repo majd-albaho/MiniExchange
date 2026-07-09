@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start", "--prefix", "FrontEndApp"],
       "port": 4200
+    },
+    {
+      "name": "market-data-service",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "MarketDataService/MarketDataService.Api", "--urls", "http://localhost:5205"],
+      "port": 5205
     }
   ]
 }

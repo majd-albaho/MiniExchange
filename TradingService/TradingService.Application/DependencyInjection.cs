@@ -9,6 +9,7 @@ namespace TradingService.Application
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
             services.AddScoped<IOrderService, OrderService>();
+            services.AddScoped<ITradeSettlementService, TradeSettlementService>();
             return services;
         }
     }

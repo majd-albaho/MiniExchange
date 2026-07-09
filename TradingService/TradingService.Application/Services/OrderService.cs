@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Logging;
 using TradingService.Application.Dto;
+using TradingService.Application.Interfaces.Clients;
 using TradingService.Application.Interfaces.Repositories;
 using TradingService.Application.Interfaces.Services;
 using TradingService.Domain.Entities;
@@ -9,10 +11,14 @@ namespace TradingService.Application.Services
     {
         private const string SystemActor = "TradingService";
         private readonly IOrderRepository _orders;
+        private readonly IMatchingEngineClient _matchingEngine;
+        private readonly ILogger<OrderService> _logger;
 
-        public OrderService(IOrderRepository orders)
+        public OrderService(IOrderRepository orders, IMatchingEngineClient matchingEngine, ILogger<OrderService> logger)
         {
             _orders = orders;
+            _matchingEngine = matchingEngine;
+            _logger = logger;
         }
 
         public async Task<OrderResponse?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -52,18 +58,60 @@ namespace TradingService.Application.Services
                 ModifiedBy = createdBy
             };
 
-            return Map(await _orders.CreateAsync(order, cancellationToken));
+            var created = await _orders.CreateAsync(order, cancellationToken);
+
+            try
+            {
+                await _matchingEngine.SubmitOrderAsync(created, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to submit order {OrderId} to the matching engine. It remains Pending.", created.Id);
+            }
+
+            return Map(created);
         }
 
-        public Task<bool> DeleteAsync(Guid id, string deletedBy, CancellationToken cancellationToken = default)
+        public async Task<bool> DeleteAsync(Guid id, string deletedBy, CancellationToken cancellationToken = default)
         {
             if (id == Guid.Empty)
             {
                 throw new ArgumentException("Order id is required.", nameof(id));
             }
 
+            var order = await _orders.GetByIdAsync(id, cancellationToken);
+            if (order is null)
+            {
+                return false;
+            }
+
             var actor = string.IsNullOrWhiteSpace(deletedBy) ? SystemActor : deletedBy.Trim();
-            return _orders.DeleteAsync(id, actor, cancellationToken);
+            var deleted = await _orders.DeleteAsync(id, actor, cancellationToken);
+
+            if (deleted)
+            {
+                try
+                {
+                    await _matchingEngine.CancelOrderAsync(id, order.PairSymbol, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to cancel order {OrderId} on the matching engine.", id);
+                }
+            }
+
+            return deleted;
+        }
+
+        public async Task<IReadOnlyList<OrderResponse>> GetOpenByUserAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            if (userId == Guid.Empty)
+            {
+                throw new ArgumentException("User id is required.", nameof(userId));
+            }
+
+            var orders = await _orders.GetOpenByUserAsync(userId, cancellationToken);
+            return orders.Select(Map).ToList();
         }
 
         private static string NormalizePairSymbol(string pairSymbol)

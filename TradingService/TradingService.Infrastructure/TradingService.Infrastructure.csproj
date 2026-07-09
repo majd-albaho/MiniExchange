@@ -41,4 +41,8 @@
 	  </PackageReference>
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Protobuf Include="Protos\matching_engine.proto" GrpcServices="Client" />
+	</ItemGroup>
+
 </Project>

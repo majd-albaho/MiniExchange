@@ -66,7 +66,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapGrpcService<WalletService.Api.Grpc.WalletService>();
+app.MapGrpcService<WalletService.Api.Grpc.WalletGrpcService>();
 
 app.MapGet("/", () => $"Wallet Service is running version {typeof(Program).Assembly.GetName().Version}");
 

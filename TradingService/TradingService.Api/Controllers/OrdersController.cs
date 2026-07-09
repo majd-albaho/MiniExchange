@@ -37,6 +37,24 @@ namespace TradingService.Api.Controllers
             }
         }
 
+        [HttpGet("user/{userId:guid}/open")]
+        public async Task<IActionResult> GetOpenByUser(Guid userId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var orders = await _orders.GetOpenByUserAsync(userId, cancellationToken);
+                return Ok(orders);
+            }
+            catch (AuthenticationException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create(CreateOrderRequest request, CancellationToken cancellationToken)
         {

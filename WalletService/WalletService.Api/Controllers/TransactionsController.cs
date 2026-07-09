@@ -89,6 +89,25 @@ namespace WalletService.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Dev/testing only: credits a balance with no real deposit behind it. There is no real
+        /// fiat/BTC deposit flow in this sandbox today (only ETH via Nethereum), so this is how
+        /// test accounts get funded to place orders.
+        /// </summary>
+        [HttpPost("Credit")]
+        public async Task<IActionResult> Credit(CreditFundRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _walletFundService.CreditFund(request.UserId, request.AssetName, request.Amount, cancellationToken);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpPost("{transactionId}")]
         public async Task<IActionResult> Get(string transactionId, CancellationToken cancellationToken)
         {

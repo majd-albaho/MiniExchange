@@ -167,7 +167,8 @@ namespace WalletService.SqlMigration.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(28, 12)
+                        .HasColumnType("decimal(28,12)");
 
                     b.Property<long>("AssetId")
                         .HasColumnType("bigint");
@@ -187,7 +188,8 @@ namespace WalletService.SqlMigration.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<decimal>("LockedAmount")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(28, 12)
+                        .HasColumnType("decimal(28,12)");
 
                     b.Property<string>("ModifiedBy")
                         .IsRequired()
@@ -207,6 +209,64 @@ namespace WalletService.SqlMigration.Migrations
                         .IsUnique();
 
                     b.ToTable("UserWalletAssets");
+                });
+
+            modelBuilder.Entity("WalletService.Domain.Entities.WalletTransaction", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(28, 12)
+                        .HasColumnType("decimal(28,12)");
+
+                    b.Property<long>("AssetId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("BalanceAfter")
+                        .HasPrecision(28, 12)
+                        .HasColumnType("decimal(28,12)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("CreatedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("DeletedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("DeletedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ModifiedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("ModifiedDate")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("ReferenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<long>("UserWalletId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReferenceId");
+
+                    b.HasIndex("UserWalletId");
+
+                    b.ToTable("WalletTransactions");
                 });
 #pragma warning restore 612, 618
         }

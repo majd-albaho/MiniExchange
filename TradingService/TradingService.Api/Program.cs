@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Context;
 using System.Diagnostics;
+using System.Text.Json.Serialization;
+using TradingService.Api.BackgroundServices;
 using TradingService.Application;
 using TradingService.Infrastructure;
 using TradingService.Infrastructure.Persistence;
@@ -18,9 +20,10 @@ builder.Host.UseSerilog((context, services, configuration) => {
 // Add services to the container.
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddHostedService<TradeExecutedConsumer>();
 
-
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddGrpc();

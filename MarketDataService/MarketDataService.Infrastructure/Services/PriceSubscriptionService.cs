@@ -11,12 +11,15 @@ using System.Text.Json;
 
 namespace MarketDataService.Infrastructure.Services
 {
-    public sealed class PriceSubscriptionService : ISubscriptionService
+    public sealed class PriceSubscriptionService : ISubscriptionService, IDisposable
     {
         private const int BufferSize = 8192;
         private const int MaxTickerMessageBytes = 64 * 1024;
+        private static readonly TimeSpan InitialReconnectDelay = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan MaxReconnectDelay = TimeSpan.FromSeconds(30);
 
         private readonly ConcurrentDictionary<string, Lazy<Task>> _subscriptions = new(StringComparer.OrdinalIgnoreCase);
+        private readonly CancellationTokenSource _lifetimeCts = new();
         private readonly IPriceCache _priceCache;
         private readonly ILogger<PriceSubscriptionService> _logger;
         private readonly IHubContext<MarketDataHub> _hubContext;
@@ -26,6 +29,12 @@ namespace MarketDataService.Infrastructure.Services
             _priceCache = priceCache;
             _logger = logger;
             _hubContext = hubContext;
+        }
+
+        public void Dispose()
+        {
+            _lifetimeCts.Cancel();
+            _lifetimeCts.Dispose();
         }
 
         public Task SubscribeAsync(string symbol, CancellationToken cancellationToken = default)
@@ -47,119 +56,149 @@ namespace MarketDataService.Infrastructure.Services
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Keeps a symbol's Binance feed alive for the life of the service: a dropped/closed socket
+        /// (idle timeout, network blip, Binance-side rate limiting) is reconnected with backoff rather
+        /// than being left permanently dead until some caller happens to re-subscribe.
+        /// </summary>
         private async Task RunSubscriptionAsync(string symbol)
         {
-            var stoppingToken = new CancellationTokenSource().Token;
+            var stoppingToken = _lifetimeCts.Token;
+            var reconnectDelay = InitialReconnectDelay;
 
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                var streamSymbol = symbol.ToLowerInvariant();
-                var url = new Uri($"wss://stream.binance.com:9443/ws/{streamSymbol}@ticker");
+                try
+                {
+                    await RunSingleConnectionAsync(symbol, stoppingToken);
+                    reconnectDelay = InitialReconnectDelay;
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (WebSocketException ex)
+                {
+                    _logger.LogWarning(ex, "Binance ticker subscription for {Symbol} disconnected. Reconnecting in {Delay}s", symbol, reconnectDelay.TotalSeconds);
+                }
+                catch (InvalidDataException ex)
+                {
+                    _logger.LogWarning(ex, "Binance ticker subscription for {Symbol} disconnected. Reconnecting in {Delay}s", symbol, reconnectDelay.TotalSeconds);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Unexpected Binance ticker subscription failure for {Symbol}. Reconnecting in {Delay}s", symbol, reconnectDelay.TotalSeconds);
+                }
 
-                using var socket = new ClientWebSocket();
-                await socket.ConnectAsync(url, stoppingToken);
-
-                _logger.LogInformation("Started Binance ticker subscription for {Symbol}", symbol);
-
-                var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
+                if (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
 
                 try
                 {
-                    while (!stoppingToken.IsCancellationRequested && socket.State == WebSocketState.Open)
-                    {
-                        var result = await socket.ReceiveAsync(buffer, stoppingToken);
-
-                        if (result.MessageType == WebSocketMessageType.Close)
-                        {
-                            break;
-                        }
-
-                        BinanceTicker? ticker;
-
-                        try
-                        {
-                            ticker = result.EndOfMessage
-                                ? JsonSerializer.Deserialize<BinanceTicker>(buffer.AsSpan(0, result.Count))
-                                : await ReceiveFragmentedTickerAsync(socket, buffer, result, stoppingToken);
-                        }
-                        catch (JsonException ex)
-                        {
-                            _logger.LogWarning(ex, "Received invalid Binance ticker payload for {Symbol}", symbol);
-                            continue;
-                        }
-
-                        if (ticker == null || !TradingSymbol.TryNormalize(ticker.Symbol, out var tickerSymbol))
-                        {
-                            continue;
-                        }
-
-                        if (!string.Equals(symbol, tickerSymbol, StringComparison.Ordinal))
-                        {
-                            continue;
-                        }
-
-                        CryptoCurrencyPrice price;
-
-                        try
-                        {
-                            price = new CryptoCurrencyPrice(
-                                tickerSymbol,
-                                ticker.LastPrice,
-                                ticker.BidPrice,
-                                ticker.AskPrice,
-                                DateTimeOffset.FromUnixTimeMilliseconds(ticker.E));
-                        }
-                        catch (FormatException ex)
-                        {
-                            _logger.LogWarning(ex, "Received Binance ticker payload with invalid prices for {Symbol}", symbol);
-                            continue;
-                        }
-                        catch (OverflowException ex)
-                        {
-                            _logger.LogWarning(ex, "Received Binance ticker payload with out-of-range prices for {Symbol}", symbol);
-                            continue;
-                        }
-                        catch (ArgumentOutOfRangeException ex)
-                        {
-                            _logger.LogWarning(ex, "Received Binance ticker payload with out-of-range event time for {Symbol}", symbol);
-                            continue;
-                        }
-
-                        _priceCache.Set(price);
-
-                        await _hubContext.Clients.Group(price.Symbol).SendAsync("PriceUpdated", price);
-
-                        _logger.LogInformation(
-                            "Price update {Symbol}: Last={LastPrice}, Bid={Bid}, Ask={Ask}",
-                            price.Symbol,
-                            price.LastPrice,
-                            price.BidPrice,
-                            price.AskPrice);
-                    }
+                    await Task.Delay(reconnectDelay, stoppingToken);
                 }
-                finally
+                catch (OperationCanceledException)
                 {
-                    ArrayPool<byte>.Shared.Return(buffer);
+                    break;
                 }
+
+                reconnectDelay = TimeSpan.FromSeconds(Math.Min(reconnectDelay.TotalSeconds * 2, MaxReconnectDelay.TotalSeconds));
             }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+
+            _subscriptions.TryRemove(symbol, out _);
+        }
+
+        private async Task RunSingleConnectionAsync(string symbol, CancellationToken stoppingToken)
+        {
+            var streamSymbol = symbol.ToLowerInvariant();
+            var url = new Uri($"wss://stream.binance.com:9443/ws/{streamSymbol}@ticker");
+
+            using var socket = new ClientWebSocket();
+            await socket.ConnectAsync(url, stoppingToken);
+
+            _logger.LogInformation("Started Binance ticker subscription for {Symbol}", symbol);
+
+            var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
+
+            try
             {
-            }
-            catch (WebSocketException ex)
-            {
-                _logger.LogWarning(ex, "Binance ticker subscription ended for {Symbol}", symbol);
-            }
-            catch (InvalidDataException ex)
-            {
-                _logger.LogWarning(ex, "Binance ticker subscription ended for {Symbol}", symbol);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected Binance ticker subscription failure for {Symbol}", symbol);
+                while (!stoppingToken.IsCancellationRequested && socket.State == WebSocketState.Open)
+                {
+                    var result = await socket.ReceiveAsync(buffer, stoppingToken);
+
+                    if (result.MessageType == WebSocketMessageType.Close)
+                    {
+                        break;
+                    }
+
+                    BinanceTicker? ticker;
+
+                    try
+                    {
+                        ticker = result.EndOfMessage
+                            ? JsonSerializer.Deserialize<BinanceTicker>(buffer.AsSpan(0, result.Count))
+                            : await ReceiveFragmentedTickerAsync(socket, buffer, result, stoppingToken);
+                    }
+                    catch (JsonException ex)
+                    {
+                        _logger.LogWarning(ex, "Received invalid Binance ticker payload for {Symbol}", symbol);
+                        continue;
+                    }
+
+                    if (ticker == null || !TradingSymbol.TryNormalize(ticker.Symbol, out var tickerSymbol))
+                    {
+                        continue;
+                    }
+
+                    if (!string.Equals(symbol, tickerSymbol, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    CryptoCurrencyPrice price;
+
+                    try
+                    {
+                        price = new CryptoCurrencyPrice(
+                            tickerSymbol,
+                            ticker.LastPrice,
+                            ticker.BidPrice,
+                            ticker.AskPrice,
+                            DateTimeOffset.FromUnixTimeMilliseconds(ticker.E));
+                    }
+                    catch (FormatException ex)
+                    {
+                        _logger.LogWarning(ex, "Received Binance ticker payload with invalid prices for {Symbol}", symbol);
+                        continue;
+                    }
+                    catch (OverflowException ex)
+                    {
+                        _logger.LogWarning(ex, "Received Binance ticker payload with out-of-range prices for {Symbol}", symbol);
+                        continue;
+                    }
+                    catch (ArgumentOutOfRangeException ex)
+                    {
+                        _logger.LogWarning(ex, "Received Binance ticker payload with out-of-range event time for {Symbol}", symbol);
+                        continue;
+                    }
+
+                    _priceCache.Set(price);
+
+                    await _hubContext.Clients.Group(price.Symbol).SendAsync("PriceUpdated", price);
+
+                    _logger.LogInformation(
+                        "Price update {Symbol}: Last={LastPrice}, Bid={Bid}, Ask={Ask}",
+                        price.Symbol,
+                        price.LastPrice,
+                        price.BidPrice,
+                        price.AskPrice);
+                }
             }
             finally
             {
-                _subscriptions.TryRemove(symbol, out _);
+                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
 

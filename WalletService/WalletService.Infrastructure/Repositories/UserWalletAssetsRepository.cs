@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using WalletService.Application.Interfaces.Repositories;
+using WalletService.Domain.Entities;
 using WalletService.Infrastructure.Persistence;
 
 namespace WalletService.Infrastructure.Repositories
@@ -13,12 +14,35 @@ namespace WalletService.Infrastructure.Repositories
             _context = context;
         }
 
-        public async Task LockFundsAsync(long userWalletId, long assetId, decimal amount, string modifiedBy, CancellationToken cancellationToken = default)
+        public async Task<UserWalletAsset> GetOrCreateAsync(long userWalletId, long assetId, string createdBy, CancellationToken cancellationToken = default)
         {
             var userWalletAsset = await _context.UserWalletAssets
                 .FirstOrDefaultAsync(w => w.UserWalletId == userWalletId && w.AssetId == assetId, cancellationToken);
-            if (userWalletAsset == null)
-                throw new InvalidOperationException("User wallet asset not found");
+
+            if (userWalletAsset is not null)
+            {
+                return userWalletAsset;
+            }
+
+            userWalletAsset = new UserWalletAsset
+            {
+                Id = default,
+                UserWalletId = userWalletId,
+                AssetId = assetId,
+                Amount = 0m,
+                LockedAmount = 0m,
+                CreatedBy = createdBy,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+
+            await _context.UserWalletAssets.AddAsync(userWalletAsset, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            return userWalletAsset;
+        }
+
+        public async Task LockFundsAsync(long userWalletId, long assetId, decimal amount, string modifiedBy, CancellationToken cancellationToken = default)
+        {
+            var userWalletAsset = await GetOrCreateAsync(userWalletId, assetId, modifiedBy, cancellationToken);
 
             if (userWalletAsset.AvailableAmount < amount)
                 throw new InvalidOperationException("Insufficient available balance to lock funds");
@@ -31,10 +55,7 @@ namespace WalletService.Infrastructure.Repositories
 
         public async Task UnlockFundsAsync(long userWalletId, long assetId, decimal amount, string modifiedBy, CancellationToken cancellationToken = default)
         {
-            var userWalletAsset = await _context.UserWalletAssets
-                .FirstOrDefaultAsync(w => w.UserWalletId == userWalletId && w.AssetId == assetId, cancellationToken);
-            if (userWalletAsset == null)
-                throw new InvalidOperationException("User wallet asset not found");
+            var userWalletAsset = await GetOrCreateAsync(userWalletId, assetId, modifiedBy, cancellationToken);
 
             if (userWalletAsset.LockedAmount < amount)
                 throw new InvalidOperationException("Insufficient locked balance to unlock funds");
@@ -43,6 +64,17 @@ namespace WalletService.Infrastructure.Repositories
             userWalletAsset.ModifiedBy = modifiedBy;
             userWalletAsset.ModifiedDate = DateTimeOffset.UtcNow;
             await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task<UserWalletAsset> CreditAsync(long userWalletId, long assetId, decimal amount, string modifiedBy, CancellationToken cancellationToken = default)
+        {
+            var userWalletAsset = await GetOrCreateAsync(userWalletId, assetId, modifiedBy, cancellationToken);
+
+            userWalletAsset.Amount += amount;
+            userWalletAsset.ModifiedBy = modifiedBy;
+            userWalletAsset.ModifiedDate = DateTimeOffset.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+            return userWalletAsset;
         }
     }
 }

@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import {
@@ -10,11 +10,27 @@ import {
   MarketTicker,
 } from '../models/trade.model';
 import { firstValueFrom } from 'rxjs';
+import { AuthService } from './auth.service';
+
+interface OrderResponseDto {
+  id: string;
+  userId: string;
+  pairSymbol: string;
+  side: 'Buy' | 'Sell';
+  type: 'Market' | 'Limit';
+  price: number;
+  quantity: number;
+  filledQuantity: number;
+  status: 'Pending' | 'Filled' | 'PartiallyFilled' | 'Canceled' | 'Rejected';
+  createdDate: string;
+  modifiedDate: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class TradeService {
   private readonly tradeUrl = environment.apiBase.trade;
   private readonly marketUrl = environment.apiBase.market;
+  private readonly authService = inject(AuthService);
 
   readonly pairs = signal<TradePair[]>([]);
   readonly selectedPair = signal<TradePair | null>(null);
@@ -22,6 +38,30 @@ export class TradeService {
   readonly openOrders = signal<Order[]>([]);
 
   constructor(private http: HttpClient) {}
+
+  private mapOrderResponse(dto: OrderResponseDto): Order {
+    const statusMap: Record<OrderResponseDto['status'], Order['status']> = {
+      Pending: 'open',
+      Filled: 'filled',
+      PartiallyFilled: 'partial',
+      Canceled: 'cancelled',
+      Rejected: 'cancelled',
+    };
+    return {
+      id: dto.id,
+      pair: dto.pairSymbol,
+      side: dto.side.toLowerCase() as 'buy' | 'sell',
+      type: dto.type.toLowerCase() as 'market' | 'limit',
+      status: statusMap[dto.status],
+      amount: dto.quantity,
+      filled: dto.filledQuantity,
+      price: dto.price,
+      avgPrice: dto.price,
+      total: dto.quantity * dto.price,
+      fee: 0,
+      createdAt: dto.createdDate,
+    };
+  }
 
   async getTradePairs(): Promise<TradePair[]> {
     try {
@@ -104,9 +144,20 @@ export class TradeService {
 
   async placeOrder(request: PlaceOrderRequest): Promise<Order> {
     try {
-      return await firstValueFrom(
-        this.http.post<Order>(`${this.tradeUrl}/orders`, request)
+      const user = this.authService.user();
+      const backendRequest = {
+        userId: user?.id,
+        pairSymbol: request.pair,
+        side: request.side === 'buy' ? 'Buy' : 'Sell',
+        type: request.type === 'market' ? 'Market' : 'Limit',
+        price: request.type === 'limit' ? (request.price ?? 0) : 0,
+        quantity: request.amount,
+        createdBy: user?.email,
+      };
+      const res = await firstValueFrom(
+        this.http.post<OrderResponseDto>(`${this.tradeUrl}/orders`, backendRequest)
       );
+      return this.mapOrderResponse(res);
     } catch (err) {
       console.error('[TradeService] placeOrder error:', err);
       const dummy: Order = {
@@ -131,10 +182,11 @@ export class TradeService {
   async getOpenOrders(userId: string): Promise<Order[]> {
     try {
       const res = await firstValueFrom(
-        this.http.get<Order[]>(`${this.tradeUrl}/orders/${userId}/open`)
+        this.http.get<OrderResponseDto[]>(`${this.tradeUrl}/orders/user/${userId}/open`)
       );
-      this.openOrders.set(res);
-      return res;
+      const orders = res.map(dto => this.mapOrderResponse(dto));
+      this.openOrders.set(orders);
+      return orders;
     } catch (err) {
       console.error('[TradeService] getOpenOrders error:', err);
       this.openOrders.set([]);
@@ -144,8 +196,9 @@ export class TradeService {
 
   async cancelOrder(orderId: string): Promise<void> {
     try {
+      const deletedBy = this.authService.user()?.email ?? '';
       await firstValueFrom(
-        this.http.delete(`${this.tradeUrl}/orders/${orderId}`)
+        this.http.delete(`${this.tradeUrl}/orders/${orderId}`, { params: { deletedBy } })
       );
       this.openOrders.update(orders => orders.filter(o => o.id !== orderId));
     } catch (err) {

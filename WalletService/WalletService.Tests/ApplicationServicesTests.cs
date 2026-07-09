@@ -7,6 +7,7 @@ using WalletService.Application.Dto;
 using WalletService.Application.Interfaces.ExternalServices;
 using WalletService.Application.Interfaces.Repositories;
 using WalletService.Application.Interfaces.Services;
+using WalletService.Application.Models;
 using WalletService.Application.Services;
 using WalletService.Domain.Entities;
 using WalletService.Domain.Enums;
@@ -230,16 +231,150 @@ public class WalletFundServiceTests
         userWalletService.VerifyAll();
     }
 
+    [Fact]
+    public async Task CreditFund_ResolvesAssetByNameAndRecordsLedgerEntry()
+    {
+        var userId = Guid.NewGuid();
+
+        var assetsRepository = new Mock<IUserWalletAssetsRepository>(MockBehavior.Strict);
+        assetsRepository
+            .Setup(repository => repository.CreditAsync(55, 3, 100m, userId.ToString(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserWalletAsset { Id = 1, UserWalletId = 55, AssetId = 3, Amount = 100m, LockedAmount = 0m, CreatedDate = DateTimeOffset.UtcNow, CreatedBy = "test" });
+
+        var userWalletService = new Mock<IUserWalletService>(MockBehavior.Strict);
+        userWalletService
+            .Setup(service => service.GetUserWallet(userId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserWalletDto { Id = 55, UserId = userId, WalletName = "Main" });
+
+        var assetService = new Mock<IAssetService>(MockBehavior.Strict);
+        assetService
+            .Setup(service => service.GetOrCreateByNameAsync("USDT", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AssetDto { Id = 3, AssetName = "USDT" });
+
+        WalletTransaction? recorded = null;
+        var transactionRepository = new Mock<IWalletTransactionRepository>(MockBehavior.Strict);
+        transactionRepository
+            .Setup(repository => repository.RecordAsync(It.IsAny<WalletTransaction>(), It.IsAny<CancellationToken>()))
+            .Callback<WalletTransaction, CancellationToken>((transaction, _) => recorded = transaction)
+            .ReturnsAsync((WalletTransaction transaction, CancellationToken _) => transaction);
+
+        using var provider = BuildWalletFundServiceProvider(assetsRepository, userWalletService, assetService, transactionRepository);
+        var service = provider.GetRequiredService<WalletFundService>();
+
+        await service.CreditFund(userId, "USDT", 100m);
+
+        Assert.NotNull(recorded);
+        Assert.Equal(WalletTransactionType.Credit, recorded!.Type);
+        Assert.Equal(100m, recorded.Amount);
+        Assert.Equal(100m, recorded.BalanceAfter);
+        Assert.Null(recorded.ReferenceId);
+        assetsRepository.VerifyAll();
+        userWalletService.VerifyAll();
+        assetService.VerifyAll();
+        transactionRepository.VerifyAll();
+    }
+
     private static ServiceProvider BuildWalletFundServiceProvider(
         Mock<IUserWalletAssetsRepository> assetsRepository,
-        Mock<IUserWalletService> userWalletService)
+        Mock<IUserWalletService> userWalletService,
+        Mock<IAssetService>? assetService = null,
+        Mock<IWalletTransactionRepository>? transactionRepository = null)
     {
         return new ServiceCollection()
             .AddSingleton(assetsRepository.Object)
             .AddSingleton(userWalletService.Object)
+            .AddSingleton(assetService?.Object ?? Mock.Of<IAssetService>())
+            .AddSingleton(transactionRepository?.Object ?? Mock.Of<IWalletTransactionRepository>())
             .AddSingleton<ILogger<WalletFundService>>(NullLogger<WalletFundService>.Instance)
             .AddTransient<WalletFundService>()
             .BuildServiceProvider(validateScopes: true);
+    }
+}
+
+public class WalletSettlementServiceTests
+{
+    [Fact]
+    public async Task SettleTradeAsync_ResolvesBothWalletsAndComputesQuoteAmount()
+    {
+        var tradeId = Guid.NewGuid();
+        var buyerUserId = Guid.NewGuid();
+        var sellerUserId = Guid.NewGuid();
+
+        var userWalletService = new Mock<IUserWalletService>(MockBehavior.Strict);
+        userWalletService
+            .Setup(service => service.GetUserWallet(buyerUserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserWalletDto { Id = 10, UserId = buyerUserId, WalletName = "Buyer" });
+        userWalletService
+            .Setup(service => service.GetUserWallet(sellerUserId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserWalletDto { Id = 20, UserId = sellerUserId, WalletName = "Seller" });
+
+        TradeSettlementCommand? capturedCommand = null;
+        var settlementRepository = new Mock<ITradeSettlementRepository>(MockBehavior.Strict);
+        settlementRepository
+            .Setup(repository => repository.SettleTradeAsync(It.IsAny<TradeSettlementCommand>(), It.IsAny<CancellationToken>()))
+            .Callback<TradeSettlementCommand, CancellationToken>((command, _) => capturedCommand = command)
+            .ReturnsAsync(true);
+
+        using var provider = new ServiceCollection()
+            .AddSingleton(userWalletService.Object)
+            .AddSingleton(settlementRepository.Object)
+            .AddSingleton<ILogger<WalletSettlementService>>(NullLogger<WalletSettlementService>.Instance)
+            .AddTransient<WalletSettlementService>()
+            .BuildServiceProvider(validateScopes: true);
+        var service = provider.GetRequiredService<WalletSettlementService>();
+
+        var result = await service.SettleTradeAsync(new TradeSettlementRequest
+        {
+            TradeId = tradeId,
+            BuyerUserId = buyerUserId,
+            SellerUserId = sellerUserId,
+            BaseAssetId = 1,
+            QuoteAssetId = 2,
+            Quantity = 0.5m,
+            Price = 65000m
+        });
+
+        Assert.True(result);
+        Assert.NotNull(capturedCommand);
+        Assert.Equal(tradeId, capturedCommand!.TradeId);
+        Assert.Equal(10, capturedCommand.BuyerWalletId);
+        Assert.Equal(20, capturedCommand.SellerWalletId);
+        Assert.Equal(1, capturedCommand.BaseAssetId);
+        Assert.Equal(2, capturedCommand.QuoteAssetId);
+        Assert.Equal(0.5m, capturedCommand.Quantity);
+        Assert.Equal(32500m, capturedCommand.QuoteAmount);
+        userWalletService.VerifyAll();
+        settlementRepository.VerifyAll();
+    }
+
+    [Theory]
+    [InlineData(0, 100)]
+    [InlineData(1, 0)]
+    public async Task SettleTradeAsync_WhenQuantityOrPriceIsNotPositive_ThrowsBeforeResolvingWallets(decimal quantity, decimal price)
+    {
+        var userWalletService = new Mock<IUserWalletService>(MockBehavior.Strict);
+        var settlementRepository = new Mock<ITradeSettlementRepository>(MockBehavior.Strict);
+
+        using var provider = new ServiceCollection()
+            .AddSingleton(userWalletService.Object)
+            .AddSingleton(settlementRepository.Object)
+            .AddSingleton<ILogger<WalletSettlementService>>(NullLogger<WalletSettlementService>.Instance)
+            .AddTransient<WalletSettlementService>()
+            .BuildServiceProvider(validateScopes: true);
+        var service = provider.GetRequiredService<WalletSettlementService>();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.SettleTradeAsync(new TradeSettlementRequest
+        {
+            TradeId = Guid.NewGuid(),
+            BuyerUserId = Guid.NewGuid(),
+            SellerUserId = Guid.NewGuid(),
+            BaseAssetId = 1,
+            QuoteAssetId = 2,
+            Quantity = quantity,
+            Price = price
+        }));
+
+        userWalletService.Verify(service => service.GetUserWallet(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }
 

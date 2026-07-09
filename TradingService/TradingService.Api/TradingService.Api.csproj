@@ -30,6 +30,16 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="SharedLibrary">
+			<HintPath>..\..\References\SharedLibrary.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
 		<Protobuf Include="Protos\trading_pair.proto" GrpcServices="Server" />
 	</ItemGroup>
 

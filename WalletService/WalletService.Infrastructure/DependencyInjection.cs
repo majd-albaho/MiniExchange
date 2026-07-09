@@ -18,6 +18,9 @@ namespace WalletService.Infrastructure
             services.AddScoped<IUserWalletRepository, UserWalletRepository>();
             services.AddScoped<IUserWalletAssetsRepository, UserWalletAssetsRepository>();
             services.AddScoped<IUserWalletAddressRepository, UserWalletAddressRepository>();
+            services.AddScoped<IAssetRepository, AssetRepository>();
+            services.AddScoped<IWalletTransactionRepository, WalletTransactionRepository>();
+            services.AddScoped<ITradeSettlementRepository, TradeSettlementRepository>();
             return services;
         }
     }

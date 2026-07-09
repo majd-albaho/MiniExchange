@@ -32,7 +32,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Protobuf Include="Protos\trading_pair.proto" GrpcServices="Server" />
+		<Protobuf Include="Protos\wallet.proto" GrpcServices="Server" />
 	</ItemGroup>
 
 	<ItemGroup>
