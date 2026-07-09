@@ -8,13 +8,20 @@ namespace MarketDataService.Api.Controllers
     [Route("api/[controller]")]
     public sealed class MarketsController : ControllerBase
     {
+        private static readonly HashSet<string> AllowedIntervals = new(StringComparer.Ordinal)
+        {
+            "1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w", "1M"
+        };
+
         private readonly ISubscriptionService _subscriptionService;
         private readonly IPriceCache _priceCache;
+        private readonly ICandleService _candleService;
 
-        public MarketsController(ISubscriptionService subscriptionService, IPriceCache priceCache)
+        public MarketsController(ISubscriptionService subscriptionService, IPriceCache priceCache, ICandleService candleService)
         {
             _subscriptionService = subscriptionService;
             _priceCache = priceCache;
+            _candleService = candleService;
         }
 
         [HttpPost("subscribe/{symbol}")]
@@ -50,6 +57,25 @@ namespace MarketDataService.Api.Controllers
             }
 
             return Ok(price);
+        }
+
+        [HttpGet("candles/{symbol}")]
+        public async Task<IActionResult> GetCandles(string symbol, [FromQuery] string interval = "1h", [FromQuery] int limit = 100, CancellationToken cancellationToken = default)
+        {
+            if (!TradingSymbol.TryNormalize(symbol, out var normalizedSymbol))
+            {
+                return BadRequest(new { Message = "Symbol must contain 1 to 32 ASCII letters or digits." });
+            }
+
+            if (!AllowedIntervals.Contains(interval))
+            {
+                return BadRequest(new { Message = "Unsupported interval." });
+            }
+
+            var clampedLimit = Math.Clamp(limit, 1, 1000);
+
+            var candles = await _candleService.GetCandlesAsync(normalizedSymbol, interval, clampedLimit, cancellationToken);
+            return Ok(candles);
         }
     }
 }

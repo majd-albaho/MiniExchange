@@ -10,6 +10,15 @@ import { MatButtonModule } from '@angular/material/button';
 
 const INTERVALS = ['1m', '5m', '15m', '1h', '4h', '1d'];
 
+const INTERVAL_SECONDS: Record<string, number> = {
+  '1m': 60,
+  '5m': 5 * 60,
+  '15m': 15 * 60,
+  '1h': 60 * 60,
+  '4h': 4 * 60 * 60,
+  '1d': 24 * 60 * 60,
+};
+
 @Component({
   selector: 'app-trade-chart',
   standalone: true,
@@ -122,12 +131,18 @@ export class TradeChartComponent implements AfterViewInit, OnChanges, OnDestroy 
       return;
     }
 
-    const time = Math.floor(Date.now() / 1000);
-    this.lastCandle.high = Math.max(this.lastCandle.high, price);
-    this.lastCandle.low = Math.min(this.lastCandle.low, price);
+    const intervalSeconds = INTERVAL_SECONDS[this.selectedInterval()] ?? 60;
+    const bucketStart = Math.floor(Date.now() / 1000 / intervalSeconds) * intervalSeconds;
+
+    if (bucketStart > this.lastCandle.time) {
+      this.lastCandle = { time: bucketStart, open: price, high: price, low: price };
+    } else {
+      this.lastCandle.high = Math.max(this.lastCandle.high, price);
+      this.lastCandle.low = Math.min(this.lastCandle.low, price);
+    }
 
     this.candleSeries.update({
-      time: Math.max(time, this.lastCandle.time) as Time,
+      time: this.lastCandle.time as Time,
       open: this.lastCandle.open,
       high: this.lastCandle.high,
       low: this.lastCandle.low,

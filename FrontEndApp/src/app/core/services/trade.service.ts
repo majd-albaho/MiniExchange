@@ -75,7 +75,7 @@ export class TradeService {
   async getCandles(symbol: string, interval: string): Promise<Candle[]> {
     try {
       return await firstValueFrom(
-        this.http.get<Candle[]>(`${this.marketUrl}/candles/${symbol}`, {
+        this.http.get<Candle[]>(`${this.marketUrl}/Markets/candles/${symbol}`, {
           params: { interval },
         })
       );

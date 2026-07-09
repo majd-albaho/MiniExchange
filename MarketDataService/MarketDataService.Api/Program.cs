@@ -12,6 +12,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddGrpc();
 builder.Services.AddSingleton<IPriceCache, InMemoryPriceCache>();
 builder.Services.AddSingleton<ISubscriptionService, PriceSubscriptionService>();
+builder.Services.AddHttpClient<ICandleService, BinanceCandleService>();
 
 
 builder.Services.AddSignalR();

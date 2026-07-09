@@ -42,7 +42,7 @@ export class MarketDataHubService {
   private async ensureConnection(): Promise<signalR.HubConnection> {
     if (!this.connection) {
       this.connection = new signalR.HubConnectionBuilder()
-        .withUrl(environment.marketHub)
+        .withUrl(environment.marketHub, { withCredentials: false })
         .withAutomaticReconnect()
         .build();
 

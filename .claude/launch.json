@@ -6,6 +6,12 @@
       "runtimeExecutable": "docker",
       "runtimeArgs": ["compose", "-f", "FrontEndApp/docker-compose.yml", "up"],
       "port": 4200
+    },
+    {
+      "name": "frontend-npm",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start", "--prefix", "FrontEndApp"],
+      "port": 4200
     }
   ]
 }
