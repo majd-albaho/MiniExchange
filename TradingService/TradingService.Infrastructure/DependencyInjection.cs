@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TradingService.Application.Interfaces.Clients;
 using TradingService.Application.Interfaces.Repositories;
 using TradingService.Infrastructure.GrpcClients;
+using TradingService.Infrastructure.HttpClients;
 using TradingService.Infrastructure.Persistence;
 using TradingService.Infrastructure.Protos;
 using TradingService.Infrastructure.Repositories;
@@ -28,6 +29,26 @@ namespace TradingService.Infrastructure
                 options.Address = new Uri(matchingEngineAddress);
             });
             services.AddScoped<IMatchingEngineClient, MatchingEngineGrpcClient>();
+
+            var tradingPairAddress = configuration["TradingPairService:GrpcAddress"] ?? "http://localhost:5208";
+            services.AddGrpcClient<TradingPairGrpc.TradingPairGrpcClient>(options =>
+            {
+                options.Address = new Uri(tradingPairAddress);
+            });
+            services.AddScoped<ITradingPairClient, TradingPairGrpcClient>();
+
+            var walletServiceAddress = configuration["WalletService:GrpcAddress"] ?? "http://localhost:5206";
+            services.AddGrpcClient<WalletGrpc.WalletGrpcClient>(options =>
+            {
+                options.Address = new Uri(walletServiceAddress);
+            });
+            services.AddScoped<IWalletServiceClient, WalletServiceGrpcClient>();
+
+            var marketDataAddress = configuration["MarketDataService:BaseUrl"] ?? "http://localhost:5205";
+            services.AddHttpClient<IMarketDataClient, MarketDataHttpClient>(client =>
+            {
+                client.BaseAddress = new Uri(marketDataAddress);
+            });
 
             return services;
         }

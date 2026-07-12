@@ -15,6 +15,7 @@
 
 	<ItemGroup>
 	  <Folder Include="GrpcClients\" />
+	  <Folder Include="HttpClients\" />
 	  <Folder Include="Messaging\" />
 	  <Folder Include="Persistence\" />
 	  <Folder Include="Repositories\" />
@@ -43,6 +44,8 @@
 
 	<ItemGroup>
 	  <Protobuf Include="Protos\matching_engine.proto" GrpcServices="Client" />
+	  <Protobuf Include="Protos\trading_pair.proto" GrpcServices="Client" />
+	  <Protobuf Include="Protos\wallet.proto" GrpcServices="Client" />
 	</ItemGroup>
 
 </Project>

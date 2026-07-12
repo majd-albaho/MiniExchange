@@ -37,6 +37,9 @@ namespace TradingService.Infrastructure.Persistence
                 entity.Property(x => x.FilledQuantity)
                     .HasPrecision(28, 12);
 
+                entity.Property(x => x.LockedAmount)
+                    .HasPrecision(28, 12);
+
                 entity.Property(x => x.CreatedBy)
                     .IsRequired()
                     .HasMaxLength(100);

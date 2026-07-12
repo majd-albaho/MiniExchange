@@ -56,6 +56,7 @@ namespace TradingService.Infrastructure.Repositories
 
             tracked.FilledQuantity = order.FilledQuantity;
             tracked.Status = order.Status;
+            tracked.LockedAmount = order.LockedAmount;
             tracked.ModifiedDate = DateTimeOffset.UtcNow;
             tracked.ModifiedBy = order.ModifiedBy;
 
