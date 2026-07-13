@@ -21,6 +21,12 @@ namespace WalletService.Infrastructure.Repositories
                 .FirstOrDefaultAsync(w => w.UserWalletId == userWalletId && w.CryptoNetworkType == cryptoNetworkType, cancellationToken);
         }
 
+        public Task<UserWalletAddress?> GetByPublicAddressAsync(string publicAddress, CancellationToken cancellationToken = default)
+        {
+            return _context.UserWalletAddresses.AsNoTracking()
+                .FirstOrDefaultAsync(w => w.PublicAddress == publicAddress, cancellationToken);
+        }
+
         public async Task<UserWalletAddress> AddAsync(UserWalletAddress userWalletAddress, CancellationToken cancellationToken = default)
         {
             var res = await _context.UserWalletAddresses.AddAsync(userWalletAddress, cancellationToken);

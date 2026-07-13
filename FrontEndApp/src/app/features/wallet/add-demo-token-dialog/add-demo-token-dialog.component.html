@@ -1,0 +1,42 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2>Add Demo Token</h2>
+    <button mat-icon-button (click)="close()"><mat-icon>close</mat-icon></button>
+  </div>
+
+  <p class="dialog-intro">
+    Demo tokens are test-only balances. You can trade them inside the exchange, but they have no
+    on-chain backing and can never be withdrawn or sent.
+  </p>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="dialog-form">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Token symbol</mat-label>
+      <input matInput formControlName="assetName" placeholder="e.g. TBTC, DEMOUSDT" maxlength="12" style="text-transform: uppercase;" />
+      @if (form.get('assetName')?.hasError('required') && form.get('assetName')?.touched) {
+        <mat-error>Symbol is required</mat-error>
+      }
+      @if (form.get('assetName')?.hasError('pattern') && form.get('assetName')?.touched) {
+        <mat-error>2–12 letters/digits, no spaces</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Amount</mat-label>
+      <input matInput formControlName="amount" type="number" step="any" placeholder="1000" />
+      @if (form.get('amount')?.hasError('required') && form.get('amount')?.touched) {
+        <mat-error>Amount is required</mat-error>
+      }
+      @if (form.get('amount')?.hasError('min') && form.get('amount')?.touched) {
+        <mat-error>Amount must be greater than 0</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="dialog-actions">
+      <button mat-button type="button" (click)="close()">Cancel</button>
+      <button mat-raised-button color="primary" type="submit" [disabled]="loading()">
+        @if (loading()) { <span class="btn-spinner"></span> } Add Demo Token
+      </button>
+    </div>
+  </form>
+</div>

@@ -40,6 +40,13 @@ namespace WalletService.Infrastructure.Repositories
             return userWalletAsset;
         }
 
+        public async Task<IReadOnlyList<UserWalletAsset>> ListByWalletAsync(long userWalletId, CancellationToken cancellationToken = default)
+        {
+            return await _context.UserWalletAssets.AsNoTracking()
+                .Where(w => w.UserWalletId == userWalletId)
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task LockFundsAsync(long userWalletId, long assetId, decimal amount, string modifiedBy, CancellationToken cancellationToken = default)
         {
             var userWalletAsset = await GetOrCreateAsync(userWalletId, assetId, modifiedBy, cancellationToken);
@@ -71,6 +78,17 @@ namespace WalletService.Infrastructure.Repositories
             var userWalletAsset = await GetOrCreateAsync(userWalletId, assetId, modifiedBy, cancellationToken);
 
             userWalletAsset.Amount += amount;
+            userWalletAsset.ModifiedBy = modifiedBy;
+            userWalletAsset.ModifiedDate = DateTimeOffset.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+            return userWalletAsset;
+        }
+
+        public async Task<UserWalletAsset> DebitAsync(long userWalletId, long assetId, decimal amount, string modifiedBy, CancellationToken cancellationToken = default)
+        {
+            var userWalletAsset = await GetOrCreateAsync(userWalletId, assetId, modifiedBy, cancellationToken);
+
+            userWalletAsset.Amount = userWalletAsset.Amount > amount ? userWalletAsset.Amount - amount : 0m;
             userWalletAsset.ModifiedBy = modifiedBy;
             userWalletAsset.ModifiedDate = DateTimeOffset.UtcNow;
             await _context.SaveChangesAsync(cancellationToken);

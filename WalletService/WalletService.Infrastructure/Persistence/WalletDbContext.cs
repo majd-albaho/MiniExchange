@@ -17,6 +17,11 @@ namespace WalletService.Infrastructure.Persistence
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<Asset>(entity =>
+            {
+                entity.HasIndex(x => x.AssetName).IsUnique();
+            });
+
             modelBuilder.Entity<UserWalletAsset>(entity =>
             {
                 entity.Property(x => x.Amount).HasPrecision(28, 12);
@@ -27,6 +32,7 @@ namespace WalletService.Infrastructure.Persistence
             {
                 entity.HasIndex(x => x.UserWalletId);
                 entity.HasIndex(x => x.ReferenceId);
+                entity.HasIndex(x => x.ExternalReference);
 
                 entity.Property(x => x.Amount).HasPrecision(28, 12);
                 entity.Property(x => x.BalanceAfter).HasPrecision(28, 12);

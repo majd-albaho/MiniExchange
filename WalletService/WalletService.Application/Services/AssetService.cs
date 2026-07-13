@@ -20,26 +20,39 @@ namespace WalletService.Application.Services
             _logger = logger;
         }
 
-        public async Task<AssetDto> GetOrCreateByNameAsync(string assetName, CancellationToken cancellationToken = default)
+        public Task<AssetDto> GetOrCreateByNameAsync(string assetName, CancellationToken cancellationToken = default)
+        {
+            return GetOrCreateByNameAsync(assetName, isDemo: false, CryptoNetworkType.None, cancellationToken);
+        }
+
+        public async Task<AssetDto> GetOrCreateByNameAsync(string assetName, bool isDemo, CryptoNetworkType networkType, CancellationToken cancellationToken = default)
         {
             var normalizedName = NormalizeAssetName(assetName);
 
             var asset = await _assetRepository.GetByNameAsync(normalizedName, cancellationToken);
             if (asset is null)
             {
-                _logger.LogInformation("No asset found named {AssetName}. Creating new ledger asset.", normalizedName);
+                _logger.LogInformation("No asset found named {AssetName}. Creating new ledger asset (IsDemo={IsDemo}).", normalizedName, isDemo);
 
                 asset = await _assetRepository.CreateAsync(new Asset
                 {
                     Id = default,
                     AssetName = normalizedName,
-                    CryptoNetworkType = CryptoNetworkType.None,
+                    CryptoNetworkType = networkType,
+                    IsDemo = isDemo,
                     CreatedBy = SystemActor,
                     CreatedDate = DateTimeOffset.UtcNow
                 }, cancellationToken);
             }
 
             return Map(asset);
+        }
+
+        public async Task<AssetDto?> GetByNameAsync(string assetName, CancellationToken cancellationToken = default)
+        {
+            var normalizedName = NormalizeAssetName(assetName);
+            var asset = await _assetRepository.GetByNameAsync(normalizedName, cancellationToken);
+            return asset is null ? null : Map(asset);
         }
 
         private static string NormalizeAssetName(string assetName)
@@ -56,7 +69,8 @@ namespace WalletService.Application.Services
             {
                 Id = asset.Id,
                 AssetName = asset.AssetName,
-                CryptoNetworkType = asset.CryptoNetworkType
+                CryptoNetworkType = asset.CryptoNetworkType,
+                IsDemo = asset.IsDemo
             };
         }
     }

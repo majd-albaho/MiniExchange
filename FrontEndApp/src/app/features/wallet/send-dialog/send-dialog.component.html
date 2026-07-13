@@ -6,6 +6,13 @@
 
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="dialog-form">
 
+    @if (isDemoSelected()) {
+      <div class="demo-warning">
+        <mat-icon>info</mat-icon>
+        <span>{{ selectedAsset().symbol }} is a demo token. It exists only for testing and cannot be withdrawn on-chain.</span>
+      </div>
+    }
+
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Asset</mat-label>
       <mat-select formControlName="symbol" (selectionChange)="onAssetChange($event.value)">
@@ -71,7 +78,7 @@
 
     <div class="dialog-actions">
       <button mat-button type="button" (click)="close()">Cancel</button>
-      <button mat-raised-button color="warn" type="submit" [disabled]="loading()">
+      <button mat-raised-button color="warn" type="submit" [disabled]="loading() || isDemoSelected()">
         @if (loading()) { <span class="btn-spinner"></span> } Send
       </button>
     </div>

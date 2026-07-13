@@ -15,8 +15,10 @@ export class WalletService {
   async getWalletOverview(userId: string): Promise<WalletOverview> {
     try {
       const res = await firstValueFrom(
-        this.http.get<WalletOverview>(`${this.baseUrl}/wallet/${userId}`)
+        this.http.get<WalletOverview>(`${this.baseUrl}/UserWallets/${userId}/overview`)
       );
+      // Backend omits presentation-only fields; give each asset a safe default logo.
+      res.assets = (res.assets ?? []).map(a => ({ ...a, logoUrl: a.logoUrl ?? '' }));
       this.walletOverview.set(res);
       return res;
     } catch (err) {
@@ -59,7 +61,7 @@ export class WalletService {
   async getReceiveInfo(userId: string, symbol: string, network: string): Promise<ReceiveInfo> {
     try {
       return await firstValueFrom(
-        this.http.get<ReceiveInfo>(`${this.baseUrl}/wallet/${userId}/receive`, {
+        this.http.get<ReceiveInfo>(`${this.baseUrl}/UserWallets/${userId}/receive`, {
           params: { symbol, network },
         })
       );
@@ -81,14 +83,27 @@ export class WalletService {
     }
   }
 
-  async sendCrypto(request: SendRequest): Promise<{ txId: string }> {
-    try {
-      return await firstValueFrom(
-        this.http.post<{ txId: string }>(`${this.baseUrl}/wallet/send`, request)
-      );
-    } catch (err) {
-      console.error('[WalletService] sendCrypto error:', err);
-      return { txId: 'dummy-tx-' + Date.now() };
-    }
+  async sendCrypto(userId: string, request: SendRequest): Promise<{ txId: string }> {
+    // Demo/test tokens have no on-chain backing and are rejected server-side too.
+    const res = await firstValueFrom(
+      this.http.post<{ txId: string }>(`${this.baseUrl}/UserWallets/Send`, {
+        userId,
+        assetSymbol: request.fromSymbol,
+        recipientAddress: request.toAddress,
+        amount: request.amount,
+      })
+    );
+    return res;
+  }
+
+  /** Adds a ledger-only demo token for testing. It can be traded but never withdrawn. */
+  async addDemoToken(userId: string, assetName: string, amount: number): Promise<void> {
+    await firstValueFrom(
+      this.http.post(`${this.baseUrl}/Transactions/AddDemoToken`, {
+        userId,
+        assetName,
+        amount,
+      })
+    );
   }
 }

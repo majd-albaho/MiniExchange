@@ -5,6 +5,8 @@ namespace WalletService.Domain.Enums
         None = 0,
         Credit,
         TradeDebit,
-        TradeCredit
+        TradeCredit,
+        Deposit,
+        Withdrawal
     }
 }

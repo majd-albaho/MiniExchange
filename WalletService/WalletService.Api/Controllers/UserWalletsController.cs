@@ -10,11 +10,44 @@ namespace WalletService.Api.Controllers
     {
         private readonly IUserWalletService _userWalletService;
         private readonly IWalletTransactionService _walletTransactionService;
+        private readonly IWalletOverviewService _walletOverviewService;
 
-        public UserWalletsController(IUserWalletService userWalletService, IWalletTransactionService walletTransactionService)
+        public UserWalletsController(
+            IUserWalletService userWalletService,
+            IWalletTransactionService walletTransactionService,
+            IWalletOverviewService walletOverviewService)
         {
             _userWalletService = userWalletService;
             _walletTransactionService = walletTransactionService;
+            _walletOverviewService = walletOverviewService;
+        }
+
+        [HttpGet("{userId}/overview")]
+        public async Task<IActionResult> GetOverview(Guid userId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var overview = await _walletOverviewService.GetOverviewAsync(userId, cancellationToken);
+                return Ok(overview);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("{userId}/receive")]
+        public async Task<IActionResult> GetReceiveInfo(Guid userId, [FromQuery] string symbol, [FromQuery] string network, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var info = await _walletOverviewService.GetReceiveInfoAsync(userId, symbol, network, cancellationToken);
+                return Ok(info);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPost("Balance/{userId}")]
@@ -40,8 +73,8 @@ namespace WalletService.Api.Controllers
         {
             try
             {
-                var transaction = await _walletTransactionService.SendEthereum(sendRequest.UserId, sendRequest.RecipientAddress, sendRequest.Amount, cancellationToken);
-                return Ok(new { transaction });
+                var transaction = await _walletTransactionService.Send(sendRequest.UserId, sendRequest.AssetSymbol, sendRequest.RecipientAddress, sendRequest.Amount, cancellationToken);
+                return Ok(new { txId = transaction });
             }
             catch (UnauthorizedAccessException ex)
             {

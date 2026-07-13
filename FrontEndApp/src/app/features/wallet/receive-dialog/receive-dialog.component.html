@@ -27,6 +27,14 @@
 
     @if (loading()) {
       <div class="loading-placeholder">Loading address...</div>
+    } @else if (receiveInfo()?.isDemo) {
+      <div class="demo-note">
+        <mat-icon>science</mat-icon>
+        <p>
+          <strong>{{ selectedSymbol }}</strong> is a demo token — it has no on-chain deposit address.
+          Use the <strong>Add Demo Token</strong> button on the wallet page to credit a test balance.
+        </p>
+      </div>
     } @else if (receiveInfo()) {
       <div class="qr-section">
         <qrcode

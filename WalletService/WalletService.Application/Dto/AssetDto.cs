@@ -7,5 +7,6 @@ namespace WalletService.Application.Dto
         public required long Id { get; set; }
         public required string AssetName { get; set; }
         public CryptoNetworkType CryptoNetworkType { get; set; }
+        public bool IsDemo { get; set; }
     }
 }

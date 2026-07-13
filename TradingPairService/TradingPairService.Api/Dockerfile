@@ -12,15 +12,21 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["TradingPairService.Api/TradingPairService.Api.csproj", "TradingPairService.Api/"]
-RUN dotnet restore "./TradingPairService.Api/TradingPairService.Api.csproj"
-COPY . .
-WORKDIR "/src/TradingPairService.Api"
+COPY ["TradingPairService/TradingPairService.Api/TradingPairService.Api.csproj", "TradingPairService/TradingPairService.Api/"]
+COPY ["TradingPairService/TradingPairService.Domain/TradingPairService.Domain.csproj", "TradingPairService/TradingPairService.Domain/"]
+COPY ["TradingPairService/TradingPairService.Application/TradingPairService.Application.csproj", "TradingPairService/TradingPairService.Application/"]
+COPY ["TradingPairService/TradingPairService.Infrastructure/TradingPairService.Infrastructure.csproj", "TradingPairService/TradingPairService.Infrastructure/"]
+COPY ["TradingPairService/TradingPairService.SqlMigration/TradingPairService.SqlMigration.csproj", "TradingPairService/TradingPairService.SqlMigration/"]
+COPY ["References/", "References/"]
+RUN dotnet restore "./TradingPairService/TradingPairService.Api/TradingPairService.Api.csproj"
+COPY TradingPairService/ TradingPairService/
+WORKDIR "/src/TradingPairService/TradingPairService.Api"
 RUN dotnet build "./TradingPairService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
+WORKDIR "/src/TradingPairService/TradingPairService.Api"
 RUN dotnet publish "./TradingPairService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)

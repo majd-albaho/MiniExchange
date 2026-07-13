@@ -9,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { WalletService } from '../../../core/services/wallet.service';
 import { NotificationService } from '../../../core/services/notification.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { WalletAsset } from '../../../core/models/wallet.model';
 
 export interface SendDialogData {
@@ -31,11 +32,13 @@ export class SendDialogComponent implements OnInit {
   private fb = inject(FormBuilder);
   private walletService = inject(WalletService);
   private notif = inject(NotificationService);
+  private authService = inject(AuthService);
 
   loading = signal(false);
   selectedAsset = signal<WalletAsset>(null!);
   networkOptions = signal<string[]>([]);
   hasMemo = signal(false);
+  isDemoSelected = signal(false);
 
   form = this.fb.group({
     symbol: ['', Validators.required],
@@ -55,6 +58,7 @@ export class SendDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.selectedAsset.set(this.data.asset);
+    this.isDemoSelected.set(!!this.data.asset.isDemo);
     this.form.get('symbol')?.setValue(this.data.asset.symbol);
     this.setNetworkOptions(this.data.asset.symbol);
     this.form.get('amount')?.valueChanges.subscribe(v => {
@@ -80,6 +84,7 @@ export class SendDialogComponent implements OnInit {
     const asset = this.data.allAssets.find(a => a.symbol === symbol);
     if (asset) {
       this.selectedAsset.set(asset);
+      this.isDemoSelected.set(!!asset.isDemo);
       this.setNetworkOptions(symbol);
     }
   }
@@ -89,11 +94,16 @@ export class SendDialogComponent implements OnInit {
   }
 
   async onSubmit(): Promise<void> {
+    if (this.isDemoSelected()) {
+      this.notif.error(`${this.selectedAsset().symbol} is a demo token and cannot be sent on-chain.`);
+      return;
+    }
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.loading.set(true);
     try {
       const v = this.form.value;
-      const res = await this.walletService.sendCrypto({
+      const userId = this.authService.user()?.id ?? 'user-001';
+      const res = await this.walletService.sendCrypto(userId, {
         fromSymbol: v.symbol!,
         toAddress: v.toAddress!,
         amount: v.amount!,
@@ -103,8 +113,9 @@ export class SendDialogComponent implements OnInit {
       });
       this.notif.success(`Transaction submitted! TX: ${res.txId}`);
       this.dialogRef.close(true);
-    } catch {
-      this.notif.error('Transaction failed. Please try again.');
+    } catch (err: any) {
+      const message = err?.error?.message ?? 'Transaction failed. Please try again.';
+      this.notif.error(message);
     } finally {
       this.loading.set(false);
     }

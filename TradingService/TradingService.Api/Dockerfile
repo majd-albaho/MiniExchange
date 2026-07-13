@@ -12,15 +12,25 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["TradingService.Api/TradingService.Api.csproj", "TradingService.Api/"]
-RUN dotnet restore "./TradingService.Api/TradingService.Api.csproj"
-COPY . .
-WORKDIR "/src/TradingService.Api"
+COPY ["TradingService/TradingService.Api/TradingService.Api.csproj", "TradingService/TradingService.Api/"]
+COPY ["TradingService/TradingService.Domain/TradingService.Domain.csproj", "TradingService/TradingService.Domain/"]
+COPY ["TradingService/TradingService.Application/TradingService.Application.csproj", "TradingService/TradingService.Application/"]
+COPY ["TradingService/TradingService.Infrastructure/TradingService.Infrastructure.csproj", "TradingService/TradingService.Infrastructure/"]
+COPY ["TradingService/TradingService.SqlMigration/TradingService.SqlMigration.csproj", "TradingService/TradingService.SqlMigration/"]
+COPY ["References/", "References/"]
+RUN dotnet restore "./TradingService/TradingService.Api/TradingService.Api.csproj"
+COPY TradingService/TradingService.Api/ TradingService/TradingService.Api/
+COPY TradingService/TradingService.Domain/ TradingService/TradingService.Domain/
+COPY TradingService/TradingService.Application/ TradingService/TradingService.Application/
+COPY TradingService/TradingService.Infrastructure/ TradingService/TradingService.Infrastructure/
+COPY TradingService/TradingService.SqlMigration/ TradingService/TradingService.SqlMigration/
+WORKDIR "/src/TradingService/TradingService.Api"
 RUN dotnet build "./TradingService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
+WORKDIR "/src/TradingService/TradingService.Api"
 RUN dotnet publish "./TradingService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)

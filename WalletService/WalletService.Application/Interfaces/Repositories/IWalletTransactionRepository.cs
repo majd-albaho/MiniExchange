@@ -8,5 +8,8 @@ namespace WalletService.Application.Interfaces.Repositories
 
         /// <summary>Used to make trade settlement idempotent against redelivered trade events.</summary>
         Task<bool> ExistsByReferenceAsync(Guid referenceId, CancellationToken cancellationToken = default);
+
+        /// <summary>Used to make on-chain deposit crediting idempotent against redelivered webhooks.</summary>
+        Task<bool> ExistsByExternalReferenceAsync(string externalReference, CancellationToken cancellationToken = default);
     }
 }

@@ -1,4 +1,5 @@
 using SharedLibrary.Entities;
+using System.ComponentModel.DataAnnotations;
 using WalletService.Domain.Enums;
 
 namespace WalletService.Domain.Entities
@@ -17,5 +18,9 @@ namespace WalletService.Domain.Entities
 
         /// <summary>TradeId for TradeDebit/TradeCredit entries; null for a manual Credit.</summary>
         public Guid? ReferenceId { get; set; }
+
+        /// <summary>On-chain transaction hash for Deposit/Withdrawal entries. Used for deposit idempotency.</summary>
+        [MaxLength(128)]
+        public string? ExternalReference { get; set; }
     }
 }

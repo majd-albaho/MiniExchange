@@ -25,5 +25,10 @@ namespace WalletService.Infrastructure.Repositories
         {
             return _context.WalletTransactions.AnyAsync(t => t.ReferenceId == referenceId, cancellationToken);
         }
+
+        public Task<bool> ExistsByExternalReferenceAsync(string externalReference, CancellationToken cancellationToken = default)
+        {
+            return _context.WalletTransactions.AnyAsync(t => t.ExternalReference == externalReference, cancellationToken);
+        }
     }
 }

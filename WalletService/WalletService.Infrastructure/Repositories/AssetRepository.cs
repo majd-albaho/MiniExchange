@@ -19,6 +19,13 @@ namespace WalletService.Infrastructure.Repositories
             return _context.Assets.FirstOrDefaultAsync(a => a.AssetName == assetName, cancellationToken);
         }
 
+        public async Task<IReadOnlyList<Asset>> ListByIdsAsync(IReadOnlyCollection<long> ids, CancellationToken cancellationToken = default)
+        {
+            return await _context.Assets.AsNoTracking()
+                .Where(a => ids.Contains(a.Id))
+                .ToListAsync(cancellationToken);
+        }
+
         public async Task<Asset> CreateAsync(Asset asset, CancellationToken cancellationToken = default)
         {
             await _context.Assets.AddAsync(asset, cancellationToken);

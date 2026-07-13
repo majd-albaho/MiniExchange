@@ -4,11 +4,14 @@ export interface WalletAsset {
   name: string;
   network: string;
   balance: number;
+  lockedBalance?: number;
   balanceUSDT: number;
   depositAddress: string;
   logoUrl: string;
   change24h: number;
   price: number;
+  /** Ledger-only test token: cannot be withdrawn/sent on-chain. */
+  isDemo?: boolean;
 }
 
 export interface WalletOverview {
@@ -33,4 +36,5 @@ export interface ReceiveInfo {
   memo?: string;
   minDeposit: number;
   confirmations: number;
+  isDemo?: boolean;
 }

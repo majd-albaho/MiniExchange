@@ -70,6 +70,16 @@ namespace WalletService.Application.Services
             return await _walletBlockchainClient.GetEthereumBalanceAsync(wallet.PublicAddress, cancellationToken);
         }
 
+        public async Task<Guid?> ResolveUserIdByAddressAsync(string publicAddress, CancellationToken cancellationToken = default)
+        {
+            var address = await _userWalletAddressRepository.GetByPublicAddressAsync(publicAddress, cancellationToken);
+            if (address is null)
+                return null;
+
+            var wallet = await _userWalletRepository.GetByIdAsync(address.UserWalletId, cancellationToken);
+            return wallet?.UserId;
+        }
+
         private Task<UserWallet> CreateWalletAsync(Guid userId, CancellationToken cancellationToken)
         {
             var userWallet = new UserWallet

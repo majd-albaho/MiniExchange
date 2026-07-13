@@ -19,6 +19,11 @@ namespace WalletService.Infrastructure.Repositories
             return _context.UserWallets.AsNoTracking().FirstOrDefaultAsync(w => w.UserId == userId, cancellationToken);
         }
 
+        public Task<UserWallet?> GetByIdAsync(long walletId, CancellationToken cancellationToken = default)
+        {
+            return _context.UserWallets.AsNoTracking().FirstOrDefaultAsync(w => w.Id == walletId, cancellationToken);
+        }
+
         public async Task<UserWallet> CreateAsync(UserWallet userWallet, CancellationToken cancellationToken = default)
         {
             await _context.UserWallets.AddAsync(userWallet, cancellationToken);

@@ -381,7 +381,7 @@ public class WalletSettlementServiceTests
 public class WalletTransactionServiceTests
 {
     [Fact]
-    public async Task SendEthereum_UsesEthereumPrivateKeyAndSepoliaChain()
+    public async Task Send_Eth_UsesEthereumPrivateKeyAndSepoliaChain_AndRecordsWithdrawal()
     {
         var userId = Guid.NewGuid();
         var userWalletService = new Mock<IUserWalletService>(MockBehavior.Strict);
@@ -394,14 +394,51 @@ public class WalletTransactionServiceTests
             .Setup(client => client.SendEthereumAsync("private-key", "0xrecipient", 1.25m, Chain.Sepolia, It.IsAny<CancellationToken>()))
             .ReturnsAsync("0xtx");
 
-        using var provider = BuildWalletTransactionServiceProvider(userWalletService, blockchainClient);
+        var assetService = new Mock<IAssetService>(MockBehavior.Strict);
+        assetService
+            .Setup(s => s.GetOrCreateByNameAsync("ETH", false, CryptoNetworkType.Ethereum, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AssetDto { Id = 42, AssetName = "ETH", CryptoNetworkType = CryptoNetworkType.Ethereum, IsDemo = false });
+
+        var walletFundService = new Mock<IWalletFundService>(MockBehavior.Strict);
+        walletFundService
+            .Setup(s => s.RecordWithdrawalAsync(userId, 42, 1.25m, "0xtx", It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        using var provider = BuildWalletTransactionServiceProvider(userWalletService, blockchainClient, assetService, walletFundService);
         var service = provider.GetRequiredService<WalletTransactionService>();
 
-        var transactionHash = await service.SendEthereum(userId, "0xrecipient", 1.25m);
+        var transactionHash = await service.Send(userId, "ETH", "0xrecipient", 1.25m);
 
         Assert.Equal("0xtx", transactionHash);
         userWalletService.VerifyAll();
         blockchainClient.VerifyAll();
+        assetService.VerifyAll();
+        walletFundService.VerifyAll();
+    }
+
+    [Fact]
+    public async Task Send_DemoToken_IsRejected()
+    {
+        var userId = Guid.NewGuid();
+        var userWalletService = new Mock<IUserWalletService>(MockBehavior.Strict);
+        var blockchainClient = new Mock<IWalletBlockchainClient>(MockBehavior.Strict);
+
+        var assetService = new Mock<IAssetService>(MockBehavior.Strict);
+        assetService
+            .Setup(s => s.GetByNameAsync("DEMOBTC", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AssetDto { Id = 9, AssetName = "DEMOBTC", CryptoNetworkType = CryptoNetworkType.None, IsDemo = true });
+
+        var walletFundService = new Mock<IWalletFundService>(MockBehavior.Strict);
+
+        using var provider = BuildWalletTransactionServiceProvider(userWalletService, blockchainClient, assetService, walletFundService);
+        var service = provider.GetRequiredService<WalletTransactionService>();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.Send(userId, "DEMOBTC", "0xrecipient", 1m));
+
+        blockchainClient.Verify(
+            c => c.SendEthereumAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<Chain>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -412,7 +449,11 @@ public class WalletTransactionServiceTests
             .Setup(client => client.GetTransactionDetailsAsync("0xtx", It.IsAny<CancellationToken>()))
             .ReturnsAsync("details");
 
-        using var provider = BuildWalletTransactionServiceProvider(new Mock<IUserWalletService>(MockBehavior.Strict), blockchainClient);
+        using var provider = BuildWalletTransactionServiceProvider(
+            new Mock<IUserWalletService>(MockBehavior.Strict),
+            blockchainClient,
+            new Mock<IAssetService>(MockBehavior.Strict),
+            new Mock<IWalletFundService>(MockBehavior.Strict));
         var service = provider.GetRequiredService<WalletTransactionService>();
 
         var result = await service.GetTransactionDetails("0xtx");
@@ -423,11 +464,15 @@ public class WalletTransactionServiceTests
 
     private static ServiceProvider BuildWalletTransactionServiceProvider(
         Mock<IUserWalletService> userWalletService,
-        Mock<IWalletBlockchainClient> blockchainClient)
+        Mock<IWalletBlockchainClient> blockchainClient,
+        Mock<IAssetService> assetService,
+        Mock<IWalletFundService> walletFundService)
     {
         return new ServiceCollection()
             .AddSingleton(userWalletService.Object)
             .AddSingleton(blockchainClient.Object)
+            .AddSingleton(assetService.Object)
+            .AddSingleton(walletFundService.Object)
             .AddSingleton<ILogger<WalletTransactionService>>(NullLogger<WalletTransactionService>.Instance)
             .AddTransient<WalletTransactionService>()
             .BuildServiceProvider(validateScopes: true);

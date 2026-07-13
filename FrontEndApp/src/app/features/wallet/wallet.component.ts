@@ -12,6 +12,7 @@ import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner
 import { WalletAsset } from '../../core/models/wallet.model';
 import { SendDialogComponent } from './send-dialog/send-dialog.component';
 import { ReceiveDialogComponent } from './receive-dialog/receive-dialog.component';
+import { AddDemoTokenDialogComponent } from './add-demo-token-dialog/add-demo-token-dialog.component';
 
 @Component({
   selector: 'app-wallet',
@@ -33,10 +34,14 @@ export class WalletComponent implements OnInit {
   filteredAssets = signal<WalletAsset[]>([]);
 
   async ngOnInit(): Promise<void> {
+    await this.refresh();
+    this.loading.set(false);
+  }
+
+  private async refresh(): Promise<void> {
     const userId = this.authService.user()?.id ?? 'user-001';
     await this.walletService.getWalletOverview(userId);
     this.filteredAssets.set(this.walletService.walletOverview()?.assets ?? []);
-    this.loading.set(false);
   }
 
   onSearch(event: Event): void {
@@ -54,6 +59,18 @@ export class WalletComponent implements OnInit {
     this.dialog.open(SendDialogComponent, {
       data: { asset: target, allAssets },
       panelClass: 'dark-dialog',
+    }).afterClosed().subscribe(sent => {
+      if (sent) this.refresh();
+    });
+  }
+
+  openAddDemoTokenDialog(): void {
+    const userId = this.authService.user()?.id ?? 'user-001';
+    this.dialog.open(AddDemoTokenDialogComponent, {
+      data: { userId },
+      panelClass: 'dark-dialog',
+    }).afterClosed().subscribe(added => {
+      if (added) this.refresh();
     });
   }
 

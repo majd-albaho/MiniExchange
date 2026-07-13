@@ -12,15 +12,23 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["MarketDataService.Api/MarketDataService.Api.csproj", "MarketDataService.Api/"]
-RUN dotnet restore "./MarketDataService.Api/MarketDataService.Api.csproj"
-COPY . .
-WORKDIR "/src/MarketDataService.Api"
+COPY ["MarketDataService/MarketDataService.Api/MarketDataService.Api.csproj", "MarketDataService/MarketDataService.Api/"]
+COPY ["MarketDataService/MarketDataService.Domain/MarketDataService.Domain.csproj", "MarketDataService/MarketDataService.Domain/"]
+COPY ["MarketDataService/MarketDataService.Application/MarketDataService.Application.csproj", "MarketDataService/MarketDataService.Application/"]
+COPY ["MarketDataService/MarketDataService.Infrastructure/MarketDataService.Infrastructure.csproj", "MarketDataService/MarketDataService.Infrastructure/"]
+COPY ["References/", "References/"]
+RUN dotnet restore "./MarketDataService/MarketDataService.Api/MarketDataService.Api.csproj"
+COPY MarketDataService/MarketDataService.Api/ MarketDataService/MarketDataService.Api/
+COPY MarketDataService/MarketDataService.Domain/ MarketDataService/MarketDataService.Domain/
+COPY MarketDataService/MarketDataService.Application/ MarketDataService/MarketDataService.Application/
+COPY MarketDataService/MarketDataService.Infrastructure/ MarketDataService/MarketDataService.Infrastructure/
+WORKDIR "/src/MarketDataService/MarketDataService.Api"
 RUN dotnet build "./MarketDataService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
+WORKDIR "/src/MarketDataService/MarketDataService.Api"
 RUN dotnet publish "./MarketDataService.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)

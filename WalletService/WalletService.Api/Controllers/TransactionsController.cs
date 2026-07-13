@@ -10,12 +10,18 @@ namespace WalletService.Api.Controllers
     {
         private readonly IWalletFundService _walletFundService;
         private readonly IWalletTransactionService _walletTransactionService;
+        private readonly IWalletDepositService _walletDepositService;
         private readonly ILogger<TransactionsController> _logger;
 
-        public TransactionsController(IWalletFundService walletFundService, IWalletTransactionService walletTransactionService, ILogger<TransactionsController> logger)
+        public TransactionsController(
+            IWalletFundService walletFundService,
+            IWalletTransactionService walletTransactionService,
+            IWalletDepositService walletDepositService,
+            ILogger<TransactionsController> logger)
         {
             _walletFundService = walletFundService;
             _walletTransactionService = walletTransactionService;
+            _walletDepositService = walletDepositService;
             _logger = logger;
         }
 
@@ -32,13 +38,12 @@ namespace WalletService.Api.Controllers
                         $"Transfer detected. Hash: {activity.Hash}, From: {activity.FromAddress}, To: {activity.ToAddress}," +
                         $" Asset: {activity.Asset}, Value: {activity.Value}, Category: {activity.Category}");
 
-                    // TODO:
-                    // 1. Check if ToAddress belongs to registered wallet
-                    // 2. Check idempotency by Hash + UniqueId
-                    // 3. Save BlockchainTransaction
-                    // 4. Publish DepositDetectedEvent or credit WalletService
-                }
+                    var credited = await _walletDepositService.ProcessDepositAsync(
+                        activity.ToAddress, activity.Asset, activity.Value, activity.Hash, cancellationToken);
 
+                    if (credited)
+                        _logger.LogInformation("Deposit credited for tx {TxHash} to {ToAddress}", activity.Hash, activity.ToAddress);
+                }
 
                 return Ok();
             }
@@ -100,6 +105,24 @@ namespace WalletService.Api.Controllers
             try
             {
                 await _walletFundService.CreditFund(request.UserId, request.AssetName, request.Amount, cancellationToken);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Adds a ledger-only demo token for testing (e.g. a fake BTC/USDT balance). Demo tokens
+        /// are flagged so they can be traded in the sandbox but can never be withdrawn on-chain.
+        /// </summary>
+        [HttpPost("AddDemoToken")]
+        public async Task<IActionResult> AddDemoToken(AddDemoTokenRequest request, CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _walletFundService.AddDemoTokenAsync(request.UserId, request.AssetName, request.Amount, cancellationToken);
                 return Ok();
             }
             catch (Exception ex)
