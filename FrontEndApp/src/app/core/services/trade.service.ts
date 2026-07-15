@@ -151,7 +151,7 @@ export class TradeService {
   async getOrderBook(symbol: string): Promise<OrderBook> {
     try {
       const res = await firstValueFrom(
-        this.http.get<OrderBook>(`${this.marketUrl}/orderbook/${symbol}`)
+        this.http.get<OrderBook>(`${this.tradeUrl}/orderbook/${symbol}`)
       );
       this.orderBook.set(res);
       return res;

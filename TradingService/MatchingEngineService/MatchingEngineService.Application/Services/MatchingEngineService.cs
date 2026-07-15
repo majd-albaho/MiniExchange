@@ -1,5 +1,6 @@
 using MatchingEngineService.Application.Dto;
 using MatchingEngineService.Application.Interfaces.Services;
+using MatchingEngineService.Domain;
 using MatchingEngineService.Domain.Entities;
 using SharedLibrary.EventDriven;
 using SharedLibrary.EventDriven.Models;
@@ -48,6 +49,17 @@ namespace MatchingEngineService.Application.Services
         {
             var actor = _registry.GetOrCreate(pairSymbol);
             return await actor.CancelAsync(orderId);
+        }
+
+        public async Task<OrderBookSnapshot> GetOrderBookAsync(string pairSymbol, int depth, CancellationToken cancellationToken = default)
+        {
+            var actor = _registry.TryGet(pairSymbol);
+            if (actor is null)
+            {
+                return new OrderBookSnapshot(pairSymbol, [], []);
+            }
+
+            return await actor.GetSnapshotAsync(depth);
         }
 
         private static TradeExecutedEvent ToEvent(Trade trade)

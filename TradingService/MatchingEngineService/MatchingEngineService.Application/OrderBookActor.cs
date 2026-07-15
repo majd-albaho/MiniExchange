@@ -37,6 +37,23 @@ namespace MatchingEngineService.Application
             return tcs.Task;
         }
 
+        public Task<OrderBookSnapshot> GetSnapshotAsync(int depth)
+        {
+            var tcs = new TaskCompletionSource<OrderBookSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+            _commands.Writer.TryWrite(() =>
+            {
+                try
+                {
+                    tcs.SetResult(_book.GetSnapshot(depth));
+                }
+                catch (Exception ex)
+                {
+                    tcs.SetException(ex);
+                }
+            });
+            return tcs.Task;
+        }
+
         public Task<bool> CancelAsync(Guid orderId)
         {
             var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);

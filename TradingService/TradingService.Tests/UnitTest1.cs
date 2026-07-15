@@ -249,6 +249,9 @@ namespace TradingService.Tests
             public Task<bool> SubmitOrderAsync(Order order, CancellationToken cancellationToken = default) => Task.FromResult(true);
 
             public Task<bool> CancelOrderAsync(Guid orderId, string pairSymbol, CancellationToken cancellationToken = default) => Task.FromResult(true);
+
+            public Task<OrderBookSnapshotDto> GetOrderBookAsync(string pairSymbol, int depth, CancellationToken cancellationToken = default)
+                => Task.FromResult(new OrderBookSnapshotDto { PairSymbol = pairSymbol });
         }
 
         private sealed class StubTradingPairClient : ITradingPairClient

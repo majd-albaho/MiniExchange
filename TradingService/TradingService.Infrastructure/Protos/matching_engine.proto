@@ -7,6 +7,7 @@ package matching_engine;
 service MatchingEngineGrpc {
   rpc SubmitOrder (SubmitOrderRequest) returns (SubmitOrderResponse);
   rpc CancelOrder (CancelOrderRequest) returns (CancelOrderResponse);
+  rpc GetOrderBook (GetOrderBookRequest) returns (GetOrderBookResponse);
 }
 
 enum OrderSideGrpc {
@@ -42,4 +43,20 @@ message CancelOrderRequest {
 
 message CancelOrderResponse {
   bool canceled = 1;
+}
+
+message GetOrderBookRequest {
+  string pair_symbol = 1;
+  int32 depth = 2;
+}
+
+message OrderBookLevelGrpc {
+  string price = 1;
+  string quantity = 2;
+}
+
+message GetOrderBookResponse {
+  string pair_symbol = 1;
+  repeated OrderBookLevelGrpc bids = 2;
+  repeated OrderBookLevelGrpc asks = 3;
 }

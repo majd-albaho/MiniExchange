@@ -39,6 +39,26 @@ namespace MatchingEngineService.Api.Grpc
             return new CancelOrderResponse { Canceled = canceled };
         }
 
+        public override async Task<GetOrderBookResponse> GetOrderBook(GetOrderBookRequest request, ServerCallContext context)
+        {
+            var depth = request.Depth <= 0 ? 20 : request.Depth;
+            var snapshot = await _matchingEngine.GetOrderBookAsync(request.PairSymbol, depth, context.CancellationToken);
+
+            var response = new GetOrderBookResponse { PairSymbol = snapshot.PairSymbol };
+            response.Bids.AddRange(snapshot.Bids.Select(ToLevel));
+            response.Asks.AddRange(snapshot.Asks.Select(ToLevel));
+            return response;
+        }
+
+        private static OrderBookLevelGrpc ToLevel(Domain.OrderBookLevel level)
+        {
+            return new OrderBookLevelGrpc
+            {
+                Price = level.Price.ToString(CultureInfo.InvariantCulture),
+                Quantity = level.Quantity.ToString(CultureInfo.InvariantCulture)
+            };
+        }
+
         private static Guid ParseGuid(string value, string fieldName)
         {
             if (!Guid.TryParse(value, out var id))

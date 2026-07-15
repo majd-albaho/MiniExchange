@@ -10,6 +10,7 @@ namespace TradingService.Application
         {
             services.AddScoped<IOrderService, OrderService>();
             services.AddScoped<ITradeSettlementService, TradeSettlementService>();
+            services.AddScoped<IOrderBookService, OrderBookService>();
             return services;
         }
     }

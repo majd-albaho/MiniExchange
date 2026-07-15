@@ -78,6 +78,38 @@ namespace MatchingEngineService.Domain
             return trades;
         }
 
+        /// <summary>
+        /// Aggregates the top <paramref name="depth"/> price levels on each side into total
+        /// resting quantity per level. Cheap point-in-time read; safe only on the writer thread.
+        /// </summary>
+        public OrderBookSnapshot GetSnapshot(int depth)
+        {
+            return new OrderBookSnapshot(PairSymbol, Aggregate(_bids, depth), Aggregate(_asks, depth));
+        }
+
+        private static List<OrderBookLevel> Aggregate(SortedDictionary<decimal, LinkedList<BookOrder>> levels, int depth)
+        {
+            var result = new List<OrderBookLevel>(Math.Min(depth, levels.Count));
+
+            foreach (var (price, ordersAtLevel) in levels)
+            {
+                if (result.Count >= depth)
+                {
+                    break;
+                }
+
+                decimal quantity = 0m;
+                foreach (var order in ordersAtLevel)
+                {
+                    quantity += order.RemainingQuantity;
+                }
+
+                result.Add(new OrderBookLevel(price, quantity));
+            }
+
+            return result;
+        }
+
         public bool Cancel(Guid orderId)
         {
             if (!_orderIndex.TryGetValue(orderId, out var location))
