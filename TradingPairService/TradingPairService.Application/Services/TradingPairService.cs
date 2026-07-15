@@ -7,6 +7,8 @@ namespace TradingPairService.Application.Services
 {
     public class TradingPairService : ITradingPairService
     {
+        private const string SystemActor = "TradingPairService";
+
         private readonly ITradingPairRepository _repository;
 
         public TradingPairService(ITradingPairRepository repository)
@@ -38,8 +40,10 @@ namespace TradingPairService.Application.Services
             if (await _repository.Exists(symbol))
                 throw new InvalidOperationException("Trading pair already exists.");
 
+            var now = DateTimeOffset.UtcNow;
             var pair = new TradingPair
             {
+                Id = Guid.NewGuid(),
                 Symbol = symbol,
                 BaseAsset = baseAsset,
                 QuoteAsset = quoteAsset,
@@ -47,7 +51,11 @@ namespace TradingPairService.Application.Services
                 MinOrderValue = request.MinOrderValue,
                 PricePrecision = request.PricePrecision,
                 QuantityPrecision = request.QuantityPrecision,
-                IsActive = true
+                IsActive = true,
+                CreatedDate = now,
+                CreatedBy = SystemActor,
+                ModifiedDate = now,
+                ModifiedBy = SystemActor
             };
 
             await _repository.Add(pair);
@@ -63,7 +71,8 @@ namespace TradingPairService.Application.Services
                 throw new InvalidOperationException("Trading pair not found.");
 
             pair.IsActive = true;
-            //pair.UpdatedAt = DateTimeOffset.UtcNow;
+            pair.ModifiedDate = DateTimeOffset.UtcNow;
+            pair.ModifiedBy = SystemActor;
 
             await _repository.Update(pair);
         }
@@ -76,7 +85,8 @@ namespace TradingPairService.Application.Services
                 throw new InvalidOperationException("Trading pair not found.");
 
             pair.IsActive = false;
-            //pair.UpdatedAt = DateTimeOffset.UtcNow;
+            pair.ModifiedDate = DateTimeOffset.UtcNow;
+            pair.ModifiedBy = SystemActor;
 
             await _repository.Update(pair);
         }

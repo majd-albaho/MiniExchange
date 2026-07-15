@@ -28,6 +28,15 @@ builder.Services.AddControllers()
 builder.Services.AddOpenApi();
 builder.Services.AddGrpc();
 
+const string FrontendCorsPolicy = "FrontendCorsPolicy";
+builder.Services.AddCors(options => {
+    options.AddPolicy(FrontendCorsPolicy, policy => {
+        policy.WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 var app = builder.Build();
 using (var scope = app.Services.CreateScope()) {
     var db = scope.ServiceProvider.GetRequiredService<TradingDbContext>();
@@ -63,6 +72,8 @@ if (app.Environment.IsDevelopment()) {
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors(FrontendCorsPolicy);
 
 app.UseAuthorization();
 

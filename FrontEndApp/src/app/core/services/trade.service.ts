@@ -12,6 +12,35 @@ import {
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from './auth.service';
 
+interface TradingPairDto {
+  symbol: string;
+  baseAsset: string;
+  quoteAsset: string;
+  minOrderQuantity: number;
+  minOrderValue: number;
+  pricePrecision: number;
+  quantityPrecision: number;
+  isActive: boolean;
+}
+
+interface LatestPriceDto {
+  symbol: string;
+  lastPrice: number;
+  bidPrice: number;
+  askPrice: number;
+  eventTime: string;
+}
+
+const ASSET_LOGOS: Record<string, string> = {
+  BTC: 'https://cryptologos.cc/logos/bitcoin-btc-logo.png',
+  ETH: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
+  SOL: 'https://cryptologos.cc/logos/solana-sol-logo.png',
+  BNB: 'https://cryptologos.cc/logos/bnb-bnb-logo.png',
+  ADA: 'https://cryptologos.cc/logos/cardano-ada-logo.png',
+  XRP: 'https://cryptologos.cc/logos/xrp-xrp-logo.png',
+  USDT: 'https://cryptologos.cc/logos/tether-usdt-logo.png',
+};
+
 interface OrderResponseDto {
   id: string;
   userId: string;
@@ -29,6 +58,7 @@ interface OrderResponseDto {
 @Injectable({ providedIn: 'root' })
 export class TradeService {
   private readonly tradeUrl = environment.apiBase.trade;
+  private readonly pairsUrl = environment.apiBase.pairs;
   private readonly marketUrl = environment.apiBase.market;
   private readonly authService = inject(AuthService);
 
@@ -65,9 +95,11 @@ export class TradeService {
 
   async getTradePairs(): Promise<TradePair[]> {
     try {
-      const res = await firstValueFrom(
-        this.http.get<TradePair[]>(`${this.marketUrl}/pairs`)
+      const catalog = await firstValueFrom(
+        this.http.get<TradingPairDto[]>(`${this.pairsUrl}/trading-pairs`)
       );
+      const active = catalog.filter(p => p.isActive);
+      const res = await Promise.all(active.map(p => this.toTradePair(p)));
       this.pairs.set(res);
       return res;
     } catch (err) {
@@ -83,6 +115,37 @@ export class TradeService {
       this.pairs.set(dummy);
       return dummy;
     }
+  }
+
+  /**
+   * MarketDataService only caches prices for subscribed symbols, so subscribe first;
+   * the first load may still show 0 until Binance delivers a tick, after which the
+   * SignalR hub keeps the price fresh. 24h stats aren't served by the backend yet.
+   */
+  private async toTradePair(dto: TradingPairDto): Promise<TradePair> {
+    let lastPrice = 0;
+    try {
+      await firstValueFrom(
+        this.http.post(`${this.marketUrl}/Markets/subscribe/${dto.symbol}`, {})
+      );
+      const price = await firstValueFrom(
+        this.http.get<LatestPriceDto>(`${this.marketUrl}/Markets/price/${dto.symbol}`)
+      );
+      lastPrice = price.lastPrice;
+    } catch {
+      // No cached price yet — leave 0 and let the live hub fill it in.
+    }
+    return {
+      symbol: dto.symbol,
+      baseAsset: dto.baseAsset,
+      quoteAsset: dto.quoteAsset,
+      lastPrice,
+      change24h: 0,
+      high24h: 0,
+      low24h: 0,
+      volume24h: 0,
+      logoUrl: ASSET_LOGOS[dto.baseAsset] ?? '',
+    };
   }
 
   async getOrderBook(symbol: string): Promise<OrderBook> {

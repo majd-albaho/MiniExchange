@@ -13,7 +13,9 @@ namespace TradingPairService.Infrastructure
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddDbContext<TradingPairDbContext>(options =>
-                    options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+                    options.UseSqlServer(
+                        configuration.GetConnectionString("DefaultConnection"),
+                        sql => sql.MigrationsAssembly("TradingPairService.SqlMigration")));
 
             services.AddScoped<ITradingPairRepository, TradingPairRepository>();
             services.AddScoped<ITradingPairService, Application.Services.TradingPairService>();

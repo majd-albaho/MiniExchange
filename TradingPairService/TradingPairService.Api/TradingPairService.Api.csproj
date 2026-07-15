@@ -43,6 +43,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\TradingPairService.Application\TradingPairService.Application.csproj" />
 		<ProjectReference Include="..\TradingPairService.Infrastructure\TradingPairService.Infrastructure.csproj" />
+		<ProjectReference Include="..\TradingPairService.SqlMigration\TradingPairService.SqlMigration.csproj" />
 	</ItemGroup>
 
 </Project>

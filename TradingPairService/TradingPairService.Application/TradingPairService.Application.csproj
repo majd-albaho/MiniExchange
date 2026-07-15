@@ -21,6 +21,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Reference Include="SharedLibrary">
+	    <HintPath>..\..\References\SharedLibrary.dll</HintPath>
+	  </Reference>
+	</ItemGroup>
+
+	<ItemGroup>
 	  <Folder Include="Commands\" />
 	  <Folder Include="Interfaces\ExternalServices\" />
 	</ItemGroup>
