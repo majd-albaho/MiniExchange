@@ -28,6 +28,8 @@ builder.Services.AddControllers()
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddGrpc();
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<TradingService.Application.Interfaces.Services.IOrderNotifier, TradingService.Api.Notifications.OrderNotifier>();
 
 const string FrontendCorsPolicy = "FrontendCorsPolicy";
 builder.Services.AddCors(options => {
@@ -83,6 +85,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapGrpcService<TradingService.Api.Grpc.TradingService>();
+app.MapHub<TradingService.Api.Hubs.OrderHub>("/hubs/orders");
 
 app.MapGet("/", () => $"Trading Service is running version {typeof(Program).Assembly.GetName().Version}");
 

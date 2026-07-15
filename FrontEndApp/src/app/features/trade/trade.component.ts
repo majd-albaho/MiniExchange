@@ -7,6 +7,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { TradeService } from '../../core/services/trade.service';
 import { AuthService } from '../../core/services/auth.service';
+import { OrderHubService } from '../../core/services/order-hub.service';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
 import { TradeChartComponent } from './trade-chart/trade-chart.component';
 import { OrderBookComponent } from './order-book/order-book.component';
@@ -29,6 +30,7 @@ import { NotificationService } from '../../core/services/notification.service';
 export class TradeComponent implements OnInit {
   private tradeService = inject(TradeService);
   private authService = inject(AuthService);
+  private orderHub = inject(OrderHubService);
   private notif = inject(NotificationService);
 
   loading = signal(true);
@@ -45,6 +47,8 @@ export class TradeComponent implements OnInit {
     const userId = this.authService.user()?.id ?? 'user-001';
     await this.tradeService.getOpenOrders(userId);
     this.loading.set(false);
+    // Live order-fill updates: keeps Open Orders + balances current without polling.
+    this.orderHub.ensureConnected();
   }
 
   selectPair(pair: TradePair): void {

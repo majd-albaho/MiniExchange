@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using SharedLibrary.EventDriven.Models;
+using TradingService.Application.Dto;
 using TradingService.Application.Interfaces.Clients;
 using TradingService.Application.Interfaces.Repositories;
 using TradingService.Application.Interfaces.Services;
@@ -14,17 +15,20 @@ namespace TradingService.Application.Services
         private readonly IOrderRepository _orders;
         private readonly ITradeRepository _trades;
         private readonly IWalletServiceClient _walletServiceClient;
+        private readonly IOrderNotifier _orderNotifier;
         private readonly ILogger<TradeSettlementService> _logger;
 
         public TradeSettlementService(
             IOrderRepository orders,
             ITradeRepository trades,
             IWalletServiceClient walletServiceClient,
+            IOrderNotifier orderNotifier,
             ILogger<TradeSettlementService> logger)
         {
             _orders = orders;
             _trades = trades;
             _walletServiceClient = walletServiceClient;
+            _orderNotifier = orderNotifier;
             _logger = logger;
         }
 
@@ -63,6 +67,39 @@ namespace TradingService.Application.Services
                 ModifiedDate = now,
                 ModifiedBy = SystemActor
             }, cancellationToken);
+
+            // Notify after everything is persisted so a refetch triggered by the push sees final state.
+            await NotifyFillAsync(buyOrder, trade, cancellationToken);
+            await NotifyFillAsync(sellOrder, trade, cancellationToken);
+        }
+
+        private async Task NotifyFillAsync(Order? order, TradeExecutedEvent trade, CancellationToken cancellationToken)
+        {
+            if (order is null)
+            {
+                return;
+            }
+
+            try
+            {
+                await _orderNotifier.OrderUpdatedAsync(order.UserId, new OrderUpdateNotification
+                {
+                    OrderId = order.Id,
+                    PairSymbol = order.PairSymbol,
+                    Side = order.Side.ToString(),
+                    Type = order.Type.ToString(),
+                    Status = order.Status.ToString(),
+                    Quantity = order.Quantity,
+                    FilledQuantity = order.FilledQuantity,
+                    Price = order.Price,
+                    LastFillQuantity = trade.Quantity,
+                    LastFillPrice = trade.Price
+                }, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to push a live order-fill notification for order {OrderId}.", order.Id);
+            }
         }
 
         private async Task SettleWalletsAsync(TradeExecutedEvent trade, Order? buyOrder, Order? sellOrder, CancellationToken cancellationToken)

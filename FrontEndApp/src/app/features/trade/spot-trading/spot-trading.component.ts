@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, Input } from '@angular/core';
+import { Component, inject, signal, effect, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -11,6 +11,7 @@ import { TradeService } from '../../../core/services/trade.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { WalletService } from '../../../core/services/wallet.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { OrderHubService } from '../../../core/services/order-hub.service';
 import { TradePair } from '../../../core/models/trade.model';
 
 @Component({
@@ -30,7 +31,17 @@ export class SpotTradingComponent implements OnInit {
   private tradeService = inject(TradeService);
   private walletService = inject(WalletService);
   private authService = inject(AuthService);
+  private orderHub = inject(OrderHubService);
   private notif = inject(NotificationService);
+
+  constructor() {
+    // Reload available balances whenever one of the user's orders fills.
+    effect(() => {
+      if (this.orderHub.lastUpdate()) {
+        this.loadBalances();
+      }
+    });
+  }
 
   orderType = signal<'limit' | 'market'>('limit');
   buyLoading = signal(false);

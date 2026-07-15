@@ -10,4 +10,5 @@ export const environment = {
     user: 'https://user-service.miniexchange.com/api/v1',
   },
   marketHub: 'http://localhost:5205/hubs/market-data',
+  orderHub: 'http://localhost:5207/hubs/orders',
 };

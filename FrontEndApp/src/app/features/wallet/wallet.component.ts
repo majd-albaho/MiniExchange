@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, effect, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -7,6 +7,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { WalletService } from '../../core/services/wallet.service';
+import { OrderHubService } from '../../core/services/order-hub.service';
 import { PageHeaderComponent } from '../../shared/components/page-header/page-header.component';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
 import { WalletAsset } from '../../core/models/wallet.model';
@@ -27,15 +28,28 @@ import { AddDemoTokenDialogComponent } from './add-demo-token-dialog/add-demo-to
 export class WalletComponent implements OnInit {
   private authService = inject(AuthService);
   walletService = inject(WalletService);
+  private orderHub = inject(OrderHubService);
   private dialog = inject(MatDialog);
 
   loading = signal(true);
   searchQuery = '';
   filteredAssets = signal<WalletAsset[]>([]);
 
+  constructor() {
+    // Re-derive the visible asset list whenever the overview changes (e.g. a live fill refresh).
+    effect(() => {
+      const all = this.walletService.walletOverview()?.assets ?? [];
+      const q = this.searchQuery.toLowerCase();
+      this.filteredAssets.set(
+        q ? all.filter(a => a.symbol.toLowerCase().includes(q) || a.name.toLowerCase().includes(q)) : all
+      );
+    });
+  }
+
   async ngOnInit(): Promise<void> {
     await this.refresh();
     this.loading.set(false);
+    this.orderHub.ensureConnected();
   }
 
   private async refresh(): Promise<void> {
