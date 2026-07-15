@@ -4,6 +4,7 @@ using Serilog.Context;
 using System.Diagnostics;
 using System.Text.Json.Serialization;
 using TradingService.Api.BackgroundServices;
+using TradingService.Api.Extensions;
 using TradingService.Application;
 using TradingService.Infrastructure;
 using TradingService.Infrastructure.Persistence;
@@ -36,6 +37,8 @@ builder.Services.AddCors(options => {
             .AllowAnyMethod();
     });
 });
+
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 var app = builder.Build();
 using (var scope = app.Services.CreateScope()) {
@@ -75,6 +78,7 @@ app.UseHttpsRedirection();
 
 app.UseCors(FrontendCorsPolicy);
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

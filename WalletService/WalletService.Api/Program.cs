@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Context;
 using System.Diagnostics;
+using WalletService.Api.Extensions;
 using WalletService.Application;
 using WalletService.Infrastructure;
 using WalletService.Infrastructure.Persistence;
@@ -34,6 +35,8 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddGrpc();
+
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
@@ -74,6 +77,7 @@ app.UseHttpsRedirection();
 
 app.UseCors(FrontendCorsPolicy);
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

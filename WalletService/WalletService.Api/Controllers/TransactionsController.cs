@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WalletService.Api.Extensions;
 using WalletService.Application.Interfaces.Services;
 using WalletService.Application.Models;
 
@@ -28,9 +30,16 @@ namespace WalletService.Api.Controllers
             _logger = logger;
         }
 
+        [Authorize]
         [HttpGet("user/{userId:guid}")]
         public async Task<IActionResult> GetUserTransactions(Guid userId, [FromQuery] WalletTransactionHistoryQuery query, CancellationToken cancellationToken)
         {
+            var callerId = User.GetUserId();
+            if (callerId is null)
+                return Unauthorized();
+            if (callerId != userId)
+                return Forbid();
+
             try
             {
                 var history = await _walletTransactionHistoryService.GetHistoryAsync(userId, query, cancellationToken);
@@ -134,12 +143,18 @@ namespace WalletService.Api.Controllers
         /// Adds a ledger-only demo token for testing (e.g. a fake BTC/USDT balance). Demo tokens
         /// are flagged so they can be traded in the sandbox but can never be withdrawn on-chain.
         /// </summary>
+        [Authorize]
         [HttpPost("AddDemoToken")]
         public async Task<IActionResult> AddDemoToken(AddDemoTokenRequest request, CancellationToken cancellationToken)
         {
+            var callerId = User.GetUserId();
+            if (callerId is null)
+                return Unauthorized();
+
             try
             {
-                await _walletFundService.AddDemoTokenAsync(request.UserId, request.AssetName, request.Amount, cancellationToken);
+                // Demo tokens are always credited to the authenticated user's own wallet.
+                await _walletFundService.AddDemoTokenAsync(callerId.Value, request.AssetName, request.Amount, cancellationToken);
                 return Ok();
             }
             catch (Exception ex)
