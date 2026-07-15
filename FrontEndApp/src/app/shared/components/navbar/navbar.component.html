@@ -1,9 +1,15 @@
 <header class="navbar">
   <div class="navbar-left">
     <div class="market-ticker">
-      <span class="ticker-item">BTC <span class="price">$44,187</span> <span class="up">+1.85%</span></span>
-      <span class="ticker-item">ETH <span class="price">$2,440</span> <span class="up">+3.12%</span></span>
-      <span class="ticker-item">SOL <span class="price">$98.04</span> <span class="up">+5.67%</span></span>
+      @for (t of strip(); track t.base) {
+        <span class="ticker-item">
+          {{ t.base }}
+          <span class="price">${{ t.price | number:'1.2-2' }}</span>
+          <span [class.up]="t.change24h >= 0" [class.down]="t.change24h < 0">
+            {{ t.change24h >= 0 ? '+' : '' }}{{ t.change24h | number:'1.2-2' }}%
+          </span>
+        </span>
+      }
     </div>
   </div>
   <div class="navbar-right">

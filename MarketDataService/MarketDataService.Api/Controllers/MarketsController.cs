@@ -16,12 +16,32 @@ namespace MarketDataService.Api.Controllers
         private readonly ISubscriptionService _subscriptionService;
         private readonly IPriceCache _priceCache;
         private readonly ICandleService _candleService;
+        private readonly ITickerCache _tickerCache;
 
-        public MarketsController(ISubscriptionService subscriptionService, IPriceCache priceCache, ICandleService candleService)
+        public MarketsController(ISubscriptionService subscriptionService, IPriceCache priceCache, ICandleService candleService, ITickerCache tickerCache)
         {
             _subscriptionService = subscriptionService;
             _priceCache = priceCache;
             _candleService = candleService;
+            _tickerCache = tickerCache;
+        }
+
+        [HttpGet("tickers")]
+        public IActionResult GetTickers()
+        {
+            return Ok(_tickerCache.GetAll());
+        }
+
+        [HttpGet("ticker/{symbol}")]
+        public IActionResult GetTicker(string symbol)
+        {
+            if (!TradingSymbol.TryNormalize(symbol, out var normalizedSymbol))
+            {
+                return BadRequest(new { Message = "Symbol must contain 1 to 32 ASCII letters or digits." });
+            }
+
+            var ticker = _tickerCache.Get(normalizedSymbol);
+            return ticker == null ? NotFound() : Ok(ticker);
         }
 
         [HttpPost("subscribe/{symbol}")]

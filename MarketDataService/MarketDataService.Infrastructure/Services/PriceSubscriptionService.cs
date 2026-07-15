@@ -21,12 +21,14 @@ namespace MarketDataService.Infrastructure.Services
         private readonly ConcurrentDictionary<string, Lazy<Task>> _subscriptions = new(StringComparer.OrdinalIgnoreCase);
         private readonly CancellationTokenSource _lifetimeCts = new();
         private readonly IPriceCache _priceCache;
+        private readonly ITickerCache _tickerCache;
         private readonly ILogger<PriceSubscriptionService> _logger;
         private readonly IHubContext<MarketDataHub> _hubContext;
 
-        public PriceSubscriptionService(IPriceCache priceCache, ILogger<PriceSubscriptionService> logger, IHubContext<MarketDataHub> hubContext)
+        public PriceSubscriptionService(IPriceCache priceCache, ITickerCache tickerCache, ILogger<PriceSubscriptionService> logger, IHubContext<MarketDataHub> hubContext)
         {
             _priceCache = priceCache;
+            _tickerCache = tickerCache;
             _logger = logger;
             _hubContext = hubContext;
         }
@@ -185,6 +187,7 @@ namespace MarketDataService.Infrastructure.Services
                     }
 
                     _priceCache.Set(price);
+                    CacheTicker(tickerSymbol, ticker, price.EventTime);
 
                     await _hubContext.Clients.Group(price.Symbol).SendAsync("PriceUpdated", price);
 
@@ -199,6 +202,30 @@ namespace MarketDataService.Infrastructure.Services
             finally
             {
                 ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
+
+        private void CacheTicker(string symbol, BinanceTicker ticker, DateTimeOffset eventTime)
+        {
+            try
+            {
+                _tickerCache.Set(new MarketTicker(
+                    symbol,
+                    ticker.LastPrice,
+                    ticker.PriceChangePercent,
+                    ticker.HighPrice,
+                    ticker.LowPrice,
+                    ticker.BaseVolume,
+                    ticker.QuoteVolume,
+                    eventTime));
+            }
+            catch (FormatException ex)
+            {
+                _logger.LogWarning(ex, "Received Binance ticker payload with invalid 24h stats for {Symbol}", symbol);
+            }
+            catch (OverflowException ex)
+            {
+                _logger.LogWarning(ex, "Received Binance ticker payload with out-of-range 24h stats for {Symbol}", symbol);
             }
         }
 

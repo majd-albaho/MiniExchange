@@ -1,3 +1,4 @@
+using MarketDataService.Api.BackgroundServices;
 using MarketDataService.Application.Interfaces.Services;
 using MarketDataService.Infrastructure.Hubs;
 using MarketDataService.Infrastructure.Services;
@@ -11,8 +12,10 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddGrpc();
 builder.Services.AddSingleton<IPriceCache, InMemoryPriceCache>();
+builder.Services.AddSingleton<ITickerCache, InMemoryTickerCache>();
 builder.Services.AddSingleton<ISubscriptionService, PriceSubscriptionService>();
 builder.Services.AddHttpClient<ICandleService, BinanceCandleService>();
+builder.Services.AddHostedService<TickerSeedService>();
 
 
 builder.Services.AddSignalR();

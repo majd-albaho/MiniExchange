@@ -23,11 +23,14 @@ interface TradingPairDto {
   isActive: boolean;
 }
 
-interface LatestPriceDto {
+interface TickerDto {
   symbol: string;
   lastPrice: number;
-  bidPrice: number;
-  askPrice: number;
+  priceChangePercent: number;
+  highPrice: number;
+  lowPrice: number;
+  baseVolume: number;
+  quoteVolume: number;
   eventTime: string;
 }
 
@@ -118,34 +121,39 @@ export class TradeService {
   }
 
   /**
-   * MarketDataService only caches prices for subscribed symbols, so subscribe first;
-   * the first load may still show 0 until Binance delivers a tick, after which the
-   * SignalR hub keeps the price fresh. 24h stats aren't served by the backend yet.
+   * MarketDataService only caches data for subscribed symbols, so subscribe first; the ticker
+   * carries the last price plus 24h stats. The first load may still show 0 until Binance
+   * delivers a tick, after which the SignalR hub keeps the last price fresh (24h stats refresh
+   * on the next pairs load).
    */
   private async toTradePair(dto: TradingPairDto): Promise<TradePair> {
-    let lastPrice = 0;
-    try {
-      await firstValueFrom(
-        this.http.post(`${this.marketUrl}/Markets/subscribe/${dto.symbol}`, {})
-      );
-      const price = await firstValueFrom(
-        this.http.get<LatestPriceDto>(`${this.marketUrl}/Markets/price/${dto.symbol}`)
-      );
-      lastPrice = price.lastPrice;
-    } catch {
-      // No cached price yet — leave 0 and let the live hub fill it in.
-    }
-    return {
+    const pair: TradePair = {
       symbol: dto.symbol,
       baseAsset: dto.baseAsset,
       quoteAsset: dto.quoteAsset,
-      lastPrice,
+      lastPrice: 0,
       change24h: 0,
       high24h: 0,
       low24h: 0,
       volume24h: 0,
       logoUrl: ASSET_LOGOS[dto.baseAsset] ?? '',
     };
+    try {
+      await firstValueFrom(
+        this.http.post(`${this.marketUrl}/Markets/subscribe/${dto.symbol}`, {})
+      );
+      const ticker = await firstValueFrom(
+        this.http.get<TickerDto>(`${this.marketUrl}/Markets/ticker/${dto.symbol}`)
+      );
+      pair.lastPrice = ticker.lastPrice;
+      pair.change24h = ticker.priceChangePercent;
+      pair.high24h = ticker.highPrice;
+      pair.low24h = ticker.lowPrice;
+      pair.volume24h = ticker.quoteVolume;
+    } catch {
+      // No cached ticker yet — leave zeros and let the live hub fill in the price.
+    }
+    return pair;
   }
 
   async getOrderBook(symbol: string): Promise<OrderBook> {

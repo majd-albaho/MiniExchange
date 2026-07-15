@@ -3,6 +3,18 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { MarketTicker, TradePair } from '../models/trade.model';
 import { firstValueFrom } from 'rxjs';
+import { symbolToPair, PREFERRED_SYMBOL_ORDER } from '../models/market-symbol';
+
+interface TickerDto {
+  symbol: string;
+  lastPrice: number;
+  priceChangePercent: number;
+  highPrice: number;
+  lowPrice: number;
+  baseVolume: number;
+  quoteVolume: number;
+  eventTime: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class MarketService {
@@ -17,10 +29,11 @@ export class MarketService {
   async getTickers(): Promise<MarketTicker[]> {
     try {
       const res = await firstValueFrom(
-        this.http.get<MarketTicker[]>(`${this.baseUrl}/tickers`)
+        this.http.get<TickerDto[]>(`${this.baseUrl}/Markets/tickers`)
       );
-      this.tickers.set(res);
-      return res;
+      const mapped = res.map(t => this.mapTicker(t)).sort(this.byPreferredOrder);
+      this.tickers.set(mapped);
+      return mapped;
     } catch (err) {
       console.error('[MarketService] getTickers error:', err);
       const dummy: MarketTicker[] = [
@@ -35,4 +48,25 @@ export class MarketService {
       return dummy;
     }
   }
+
+  private mapTicker(dto: TickerDto): MarketTicker {
+    return {
+      pair: symbolToPair(dto.symbol),
+      price: dto.lastPrice,
+      change24h: dto.priceChangePercent,
+      high24h: dto.highPrice,
+      low24h: dto.lowPrice,
+      volume24h: dto.quoteVolume,
+    };
+  }
+
+  private byPreferredOrder = (a: MarketTicker, b: MarketTicker): number => {
+    const rank = (pair: string): number => {
+      const base = pair.split('/')[0];
+      const i = PREFERRED_SYMBOL_ORDER.indexOf(base);
+      return i === -1 ? PREFERRED_SYMBOL_ORDER.length : i;
+    };
+    const diff = rank(a.pair) - rank(b.pair);
+    return diff !== 0 ? diff : a.pair.localeCompare(b.pair);
+  };
 }
