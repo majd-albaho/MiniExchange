@@ -21,9 +21,19 @@ export class TransactionService {
     filter: TransactionFilter
   ): Promise<PaginatedTransactions> {
     try {
+      const params: Record<string, string | number> = {
+        page: filter.page,
+        pageSize: filter.pageSize,
+      };
+      if (filter.type && filter.type !== 'all') params['type'] = filter.type;
+      if (filter.status && filter.status !== 'all') params['status'] = filter.status;
+      if (filter.symbol) params['symbol'] = filter.symbol;
+      if (filter.startDate) params['startDate'] = filter.startDate;
+      if (filter.endDate) params['endDate'] = filter.endDate;
+
       const res = await firstValueFrom(
-        this.http.get<PaginatedTransactions>(`${this.baseUrl}/transactions/${userId}`, {
-          params: filter as unknown as Record<string, string | number>,
+        this.http.get<PaginatedTransactions>(`${this.baseUrl}/Transactions/user/${userId}`, {
+          params,
         })
       );
       this.transactions.set(res);

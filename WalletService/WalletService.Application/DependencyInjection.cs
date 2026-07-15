@@ -17,6 +17,7 @@ namespace WalletService.Application
             services.AddScoped<IWalletOverviewService, WalletOverviewService>();
             services.AddScoped<IAssetService, AssetService>();
             services.AddScoped<IWalletSettlementService, WalletSettlementService>();
+            services.AddScoped<IWalletTransactionHistoryService, WalletTransactionHistoryService>();
             return services;
         }
     }

@@ -11,18 +11,35 @@ namespace WalletService.Api.Controllers
         private readonly IWalletFundService _walletFundService;
         private readonly IWalletTransactionService _walletTransactionService;
         private readonly IWalletDepositService _walletDepositService;
+        private readonly IWalletTransactionHistoryService _walletTransactionHistoryService;
         private readonly ILogger<TransactionsController> _logger;
 
         public TransactionsController(
             IWalletFundService walletFundService,
             IWalletTransactionService walletTransactionService,
             IWalletDepositService walletDepositService,
+            IWalletTransactionHistoryService walletTransactionHistoryService,
             ILogger<TransactionsController> logger)
         {
             _walletFundService = walletFundService;
             _walletTransactionService = walletTransactionService;
             _walletDepositService = walletDepositService;
+            _walletTransactionHistoryService = walletTransactionHistoryService;
             _logger = logger;
+        }
+
+        [HttpGet("user/{userId:guid}")]
+        public async Task<IActionResult> GetUserTransactions(Guid userId, [FromQuery] WalletTransactionHistoryQuery query, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var history = await _walletTransactionHistoryService.GetHistoryAsync(userId, query, cancellationToken);
+                return Ok(history);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPost("AddressTransaction")]

@@ -5,7 +5,7 @@ export const environment = {
     wallet: 'http://localhost:5002/api',
     trade: 'http://localhost:5207/api',
     pairs: 'http://localhost:5208/api',
-    transactions: 'https://transaction-service.miniexchange.com/api/v1',
+    transactions: 'http://localhost:5002/api',
     market: 'http://localhost:5205/api',
     user: 'https://user-service.miniexchange.com/api/v1',
   },
