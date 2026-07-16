@@ -71,3 +71,15 @@ export interface LivePrice {
   askPrice: number;
   eventTime: string;
 }
+
+/** Live 24h rolling-window stats pushed by the market-data hub. */
+export interface LiveTicker {
+  symbol: string;
+  lastPrice: number;
+  priceChangePercent: number;
+  highPrice: number;
+  lowPrice: number;
+  baseVolume: number;
+  quoteVolume: number;
+  eventTime: string;
+}

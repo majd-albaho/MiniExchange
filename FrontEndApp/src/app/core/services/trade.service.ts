@@ -8,6 +8,7 @@ import {
   Order,
   Candle,
   MarketTicker,
+  LiveTicker,
 } from '../models/trade.model';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from './auth.service';
@@ -154,6 +155,30 @@ export class TradeService {
       // No cached ticker yet — leave zeros and let the live hub fill in the price.
     }
     return pair;
+  }
+
+  /**
+   * Folds a live ticker push into the cached pairs so the pair chips and the selected pair's
+   * 24h stats keep ticking instead of staying frozen at their load-time snapshot.
+   */
+  applyLiveTicker(ticker: LiveTicker): void {
+    const merge = (pair: TradePair): TradePair => ({
+      ...pair,
+      lastPrice: ticker.lastPrice,
+      change24h: ticker.priceChangePercent,
+      high24h: ticker.highPrice,
+      low24h: ticker.lowPrice,
+      volume24h: ticker.quoteVolume,
+    });
+
+    this.pairs.update(pairs =>
+      pairs.map(p => (p.symbol === ticker.symbol ? merge(p) : p))
+    );
+
+    const selected = this.selectedPair();
+    if (selected?.symbol === ticker.symbol) {
+      this.selectedPair.set(merge(selected));
+    }
   }
 
   async getOrderBook(symbol: string): Promise<OrderBook> {

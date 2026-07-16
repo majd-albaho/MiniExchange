@@ -187,9 +187,21 @@ namespace MarketDataService.Infrastructure.Services
                     }
 
                     _priceCache.Set(price);
-                    CacheTicker(tickerSymbol, ticker, price.EventTime);
+
+                    var marketTicker = TryBuildTicker(tickerSymbol, ticker, price.EventTime);
+                    if (marketTicker is not null)
+                    {
+                        _tickerCache.Set(marketTicker);
+                    }
 
                     await _hubContext.Clients.Group(price.Symbol).SendAsync("PriceUpdated", price);
+
+                    // Push the 24h window too so subscribers can keep change/high/low/volume live,
+                    // not just the last price.
+                    if (marketTicker is not null)
+                    {
+                        await _hubContext.Clients.Group(price.Symbol).SendAsync("TickerUpdated", marketTicker);
+                    }
 
                     _logger.LogInformation(
                         "Price update {Symbol}: Last={LastPrice}, Bid={Bid}, Ask={Ask}",
@@ -205,11 +217,11 @@ namespace MarketDataService.Infrastructure.Services
             }
         }
 
-        private void CacheTicker(string symbol, BinanceTicker ticker, DateTimeOffset eventTime)
+        private MarketTicker? TryBuildTicker(string symbol, BinanceTicker ticker, DateTimeOffset eventTime)
         {
             try
             {
-                _tickerCache.Set(new MarketTicker(
+                return new MarketTicker(
                     symbol,
                     ticker.LastPrice,
                     ticker.PriceChangePercent,
@@ -217,15 +229,17 @@ namespace MarketDataService.Infrastructure.Services
                     ticker.LowPrice,
                     ticker.BaseVolume,
                     ticker.QuoteVolume,
-                    eventTime));
+                    eventTime);
             }
             catch (FormatException ex)
             {
                 _logger.LogWarning(ex, "Received Binance ticker payload with invalid 24h stats for {Symbol}", symbol);
+                return null;
             }
             catch (OverflowException ex)
             {
                 _logger.LogWarning(ex, "Received Binance ticker payload with out-of-range 24h stats for {Symbol}", symbol);
+                return null;
             }
         }
 

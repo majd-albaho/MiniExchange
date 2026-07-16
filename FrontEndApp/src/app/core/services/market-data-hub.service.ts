@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import * as signalR from '@microsoft/signalr';
 import { environment } from '../../../environments/environment';
-import { LivePrice } from '../models/trade.model';
+import { LivePrice, LiveTicker } from '../models/trade.model';
 
 @Injectable({ providedIn: 'root' })
 export class MarketDataHubService {
@@ -13,6 +13,7 @@ export class MarketDataHubService {
   private connectionStart: Promise<void> | null = null;
 
   readonly prices = signal<Record<string, LivePrice>>({});
+  readonly tickers = signal<Record<string, LiveTicker>>({});
 
   constructor(private http: HttpClient) {}
 
@@ -48,6 +49,10 @@ export class MarketDataHubService {
 
       this.connection.on('PriceUpdated', (price: LivePrice) => {
         this.prices.update(current => ({ ...current, [price.symbol]: price }));
+      });
+
+      this.connection.on('TickerUpdated', (ticker: LiveTicker) => {
+        this.tickers.update(current => ({ ...current, [ticker.symbol]: ticker }));
       });
 
       this.connection.onreconnected(() => {

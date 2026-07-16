@@ -60,8 +60,8 @@ export class TradeChartComponent implements AfterViewInit, OnChanges, OnDestroy 
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['pair'] && !changes['pair'].firstChange) {
-      const previous = changes['pair'].previousValue as string;
-      this.hubService.unsubscribe(previous);
+      // The trade page owns hub subscriptions for every listed pair (their chips stay live),
+      // so switching pairs here only re-points the chart — it must not unsubscribe the old one.
       this.subscribeToPair(this.pair);
       this.loadData();
     }
