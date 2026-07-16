@@ -1,4 +1,5 @@
 using WalletService.Application.Dto;
+using WalletService.Application.Interfaces.ExternalServices;
 using WalletService.Application.Interfaces.Repositories;
 using WalletService.Application.Interfaces.Services;
 using WalletService.Application.Models;
@@ -22,13 +23,16 @@ namespace WalletService.Application.Services
 
         private readonly IUserWalletService _userWalletService;
         private readonly IWalletTransactionRepository _walletTransactionRepository;
+        private readonly IMarketPriceClient _marketPriceClient;
 
         public WalletTransactionHistoryService(
             IUserWalletService userWalletService,
-            IWalletTransactionRepository walletTransactionRepository)
+            IWalletTransactionRepository walletTransactionRepository,
+            IMarketPriceClient marketPriceClient)
         {
             _userWalletService = userWalletService;
             _walletTransactionRepository = walletTransactionRepository;
+            _marketPriceClient = marketPriceClient;
         }
 
         public async Task<WalletTransactionHistoryResponseDto> GetHistoryAsync(Guid userId, WalletTransactionHistoryQuery query, CancellationToken cancellationToken = default)
@@ -65,16 +69,19 @@ namespace WalletService.Application.Services
                 pageSize,
                 cancellationToken);
 
+            // Historical prices aren't stored, so rows are valued at the current market price.
+            var prices = await _marketPriceClient.GetPricesAsync(cancellationToken);
+
             return new WalletTransactionHistoryResponseDto
             {
-                Items = result.Items.Select(Map).ToList(),
+                Items = result.Items.Select(entry => Map(entry, prices)).ToList(),
                 Total = result.Total,
                 Page = page,
                 PageSize = pageSize,
             };
         }
 
-        private static WalletTransactionHistoryItemDto Map(WalletTransactionHistoryEntry entry)
+        private static WalletTransactionHistoryItemDto Map(WalletTransactionHistoryEntry entry, IReadOnlyDictionary<string, AssetPrice> prices)
         {
             return new WalletTransactionHistoryItemDto
             {
@@ -83,7 +90,7 @@ namespace WalletService.Application.Services
                 Status = "completed",
                 Symbol = entry.AssetName,
                 Amount = entry.Amount,
-                AmountUSDT = entry.AssetName == QuoteSymbol ? entry.Amount : 0m,
+                AmountUSDT = entry.Amount * ResolvePrice(entry.AssetName, prices),
                 Fee = 0m,
                 FeeSymbol = entry.AssetName,
                 TxHash = entry.ExternalReference ?? entry.ReferenceId?.ToString(),
@@ -91,6 +98,16 @@ namespace WalletService.Application.Services
                 CreatedAt = entry.CreatedDate,
                 UpdatedAt = entry.CreatedDate,
             };
+        }
+
+        private static decimal ResolvePrice(string symbol, IReadOnlyDictionary<string, AssetPrice> prices)
+        {
+            if (string.Equals(symbol, QuoteSymbol, StringComparison.OrdinalIgnoreCase))
+            {
+                return 1m;
+            }
+
+            return prices.TryGetValue(symbol + QuoteSymbol, out var price) ? price.Price : 0m;
         }
 
         private static string MapType(WalletTransactionType type)

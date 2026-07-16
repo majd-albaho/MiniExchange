@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using WalletService.Application.Interfaces.ExternalServices;
 using WalletService.Application.Interfaces.Repositories;
+using WalletService.Infrastructure.ExternalServices;
 using WalletService.Infrastructure.Persistence;
 using WalletService.Infrastructure.Repositories;
 
@@ -21,6 +23,13 @@ namespace WalletService.Infrastructure
             services.AddScoped<IAssetRepository, AssetRepository>();
             services.AddScoped<IWalletTransactionRepository, WalletTransactionRepository>();
             services.AddScoped<ITradeSettlementRepository, TradeSettlementRepository>();
+
+            var marketDataBaseUrl = configuration["MarketDataService:BaseUrl"] ?? "http://localhost:5205";
+            services.AddHttpClient<IMarketPriceClient, MarketPriceHttpClient>(client =>
+            {
+                client.BaseAddress = new Uri(marketDataBaseUrl);
+            });
+
             return services;
         }
     }

@@ -3,6 +3,7 @@ using WalletService.Application.Dto;
 using WalletService.Application.Interfaces.ExternalServices;
 using WalletService.Application.Interfaces.Repositories;
 using WalletService.Application.Interfaces.Services;
+using WalletService.Application.Models;
 using WalletService.Domain.Entities;
 using WalletService.Domain.Enums;
 
@@ -10,11 +11,14 @@ namespace WalletService.Application.Services
 {
     public class WalletOverviewService : IWalletOverviewService
     {
+        private const string QuoteSymbol = "USDT";
+
         private readonly IUserWalletService _userWalletService;
         private readonly IUserWalletAssetsRepository _userWalletAssetsRepository;
         private readonly IAssetRepository _assetRepository;
         private readonly IAssetService _assetService;
         private readonly IWalletBlockchainClient _walletBlockchainClient;
+        private readonly IMarketPriceClient _marketPriceClient;
         private readonly ILogger<WalletOverviewService> _logger;
 
         public WalletOverviewService(
@@ -23,6 +27,7 @@ namespace WalletService.Application.Services
             IAssetRepository assetRepository,
             IAssetService assetService,
             IWalletBlockchainClient walletBlockchainClient,
+            IMarketPriceClient marketPriceClient,
             ILogger<WalletOverviewService> logger)
         {
             _userWalletService = userWalletService;
@@ -30,6 +35,7 @@ namespace WalletService.Application.Services
             _assetRepository = assetRepository;
             _assetService = assetService;
             _walletBlockchainClient = walletBlockchainClient;
+            _marketPriceClient = marketPriceClient;
             _logger = logger;
         }
 
@@ -77,7 +83,48 @@ namespace WalletService.Application.Services
                 });
             }
 
+            await ApplyUsdtValuationAsync(overview, cancellationToken);
+
             return overview;
+        }
+
+        /// <summary>
+        /// Prices each asset in USDT from MarketData's live prices and fills in per-asset and total
+        /// USDT values plus 24h change (portfolio change is value-weighted). Assets with no available
+        /// price (e.g. demo tokens) are valued at 0.
+        /// </summary>
+        private async Task ApplyUsdtValuationAsync(WalletOverviewDto overview, CancellationToken cancellationToken)
+        {
+            var prices = await _marketPriceClient.GetPricesAsync(cancellationToken);
+
+            decimal totalValue = 0m;
+            decimal weightedChange = 0m;
+
+            foreach (var asset in overview.Assets)
+            {
+                var (price, change) = ResolvePrice(asset.Symbol, prices);
+                asset.Price = price;
+                asset.Change24h = change;
+                asset.BalanceUSDT = asset.Balance * price;
+
+                totalValue += asset.BalanceUSDT;
+                weightedChange += asset.BalanceUSDT * change;
+            }
+
+            overview.TotalBalanceUSDT = totalValue;
+            overview.TotalChange24h = totalValue > 0m ? weightedChange / totalValue : 0m;
+        }
+
+        private static (decimal Price, decimal Change24h) ResolvePrice(string symbol, IReadOnlyDictionary<string, AssetPrice> prices)
+        {
+            if (string.Equals(symbol, QuoteSymbol, StringComparison.OrdinalIgnoreCase))
+            {
+                return (1m, 0m);
+            }
+
+            return prices.TryGetValue(symbol + QuoteSymbol, out var price)
+                ? (price.Price, price.Change24h)
+                : (0m, 0m);
         }
 
         public async Task<ReceiveInfoDto> GetReceiveInfoAsync(Guid userId, string symbol, string network, CancellationToken cancellationToken = default)
