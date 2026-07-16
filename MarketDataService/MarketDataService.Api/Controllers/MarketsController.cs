@@ -1,9 +1,16 @@
 using MarketDataService.Application.Interfaces.Services;
 using MarketDataService.Domain.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MarketDataService.Api.Controllers
 {
+    /// <summary>
+    /// Market data is public to read — the reads are also called service-to-service (TradingService
+    /// for prices, WalletService for tickers) without a user token, so they stay anonymous.
+    /// Subscribing is the one action with a side effect (it opens an upstream Binance stream), so
+    /// it requires an authenticated caller.
+    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     public sealed class MarketsController : ControllerBase
@@ -44,6 +51,7 @@ namespace MarketDataService.Api.Controllers
             return ticker == null ? NotFound() : Ok(ticker);
         }
 
+        [Authorize]
         [HttpPost("subscribe/{symbol}")]
         public async Task<IActionResult> Subscribe(string symbol, CancellationToken cancellationToken)
         {

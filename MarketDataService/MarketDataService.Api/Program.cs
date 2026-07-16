@@ -1,4 +1,5 @@
 using MarketDataService.Api.BackgroundServices;
+using MarketDataService.Api.Extensions;
 using MarketDataService.Application.Interfaces.Services;
 using MarketDataService.Infrastructure.Hubs;
 using MarketDataService.Infrastructure.Services;
@@ -29,6 +30,8 @@ builder.Services.AddCors(options => {
     });
 });
 
+builder.Services.AddJwtAuthentication(builder.Configuration);
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -41,6 +44,7 @@ app.UseHttpsRedirection();
 
 app.UseCors(FrontendCorsPolicy);
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHub<MarketDataHub>("/hubs/market-data");

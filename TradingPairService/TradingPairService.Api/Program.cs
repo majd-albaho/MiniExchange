@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Serilog.Context;
 using System.Diagnostics;
+using TradingPairService.Api.Extensions;
 using TradingPairService.Application;
 using TradingPairService.Infrastructure;
 using TradingPairService.Infrastructure.Persistence;
@@ -37,6 +38,8 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
+
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
@@ -83,6 +86,7 @@ app.UseHttpsRedirection();
 
 app.UseCors(FrontendCorsPolicy);
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

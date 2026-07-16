@@ -14,6 +14,7 @@ namespace WalletService.Api.Controllers
         private readonly IWalletTransactionService _walletTransactionService;
         private readonly IWalletDepositService _walletDepositService;
         private readonly IWalletTransactionHistoryService _walletTransactionHistoryService;
+        private readonly IHostEnvironment _environment;
         private readonly ILogger<TransactionsController> _logger;
 
         public TransactionsController(
@@ -21,12 +22,14 @@ namespace WalletService.Api.Controllers
             IWalletTransactionService walletTransactionService,
             IWalletDepositService walletDepositService,
             IWalletTransactionHistoryService walletTransactionHistoryService,
+            IHostEnvironment environment,
             ILogger<TransactionsController> logger)
         {
             _walletFundService = walletFundService;
             _walletTransactionService = walletTransactionService;
             _walletDepositService = walletDepositService;
             _walletTransactionHistoryService = walletTransactionHistoryService;
+            _environment = environment;
             _logger = logger;
         }
 
@@ -84,53 +87,30 @@ namespace WalletService.Api.Controllers
         }
 
 
-        [HttpPost("LockFund")]
-        public async Task<IActionResult> LockFund(FundLockRequest request, CancellationToken cancellationToken)
-        {
-            try
-            {
-                await _walletFundService.LockFund(request.UserId, request.AssetId, request.Amount, cancellationToken);
-                return Ok();
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
-
-        [HttpPost("UnlockFund")]
-        public async Task<IActionResult> UnlockFund(FundLockRequest request, CancellationToken cancellationToken)
-        {
-            try
-            {
-                await _walletFundService.UnlockFund(request.UserId, request.AssetId, request.Amount, cancellationToken);
-                return Ok();
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-        }
+        // Fund locking/unlocking is an internal, service-to-service concern and is exposed only
+        // over gRPC (WalletGrpcService), which TradingService uses. It deliberately has no REST
+        // surface: an unauthenticated caller could otherwise release another user's collateral.
 
         /// <summary>
         /// Dev/testing only: credits a balance with no real deposit behind it. There is no real
         /// fiat/BTC deposit flow in this sandbox today (only ETH via Nethereum), so this is how
-        /// test accounts get funded to place orders.
+        /// test accounts get funded to place orders. Restricted to the Development environment and
+        /// to the caller's own wallet.
         /// </summary>
+        [Authorize]
         [HttpPost("Credit")]
         public async Task<IActionResult> Credit(CreditFundRequest request, CancellationToken cancellationToken)
         {
+            if (!_environment.IsDevelopment())
+                return NotFound();
+
+            var callerId = User.GetUserId();
+            if (callerId is null)
+                return Unauthorized();
+
             try
             {
-                await _walletFundService.CreditFund(request.UserId, request.AssetName, request.Amount, cancellationToken);
+                await _walletFundService.CreditFund(callerId.Value, request.AssetName, request.Amount, cancellationToken);
                 return Ok();
             }
             catch (Exception ex)
@@ -163,6 +143,11 @@ namespace WalletService.Api.Controllers
             }
         }
 
+        /// <summary>
+        /// Looks up an on-chain transaction. Authenticated because it makes an outbound call to our
+        /// blockchain provider; as a catch-all POST route it would otherwise let anyone drive that.
+        /// </summary>
+        [Authorize]
         [HttpPost("{transactionId}")]
         public async Task<IActionResult> Get(string transactionId, CancellationToken cancellationToken)
         {

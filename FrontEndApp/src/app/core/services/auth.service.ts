@@ -9,6 +9,9 @@ const TOKEN_KEY = 'mx_access_token';
 const REFRESH_KEY = 'mx_refresh_token';
 const USER_KEY = 'mx_user';
 
+/** Refresh slightly before the real expiry so a request can't expire mid-flight. */
+const EXPIRY_SKEW_MS = 5000;
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly baseUrl = environment.apiBase.auth;
@@ -16,6 +19,8 @@ export class AuthService {
   private _user = signal<User | null>(this.loadUser());
   readonly user = this._user.asReadonly();
   readonly isAuthenticated = computed(() => !!this._user());
+
+  private refreshInFlight: Promise<string | null> | null = null;
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -59,17 +64,52 @@ export class AuthService {
     }
   }
 
-  async refreshToken(): Promise<void> {
+  /**
+   * Refreshes the access token, collapsing concurrent callers onto one in-flight request so a
+   * burst of 401s doesn't fire N refreshes (and invalidate each other's refresh token).
+   * Resolves to the new token, or null if the session is gone (caller is logged out).
+   */
+  refreshTokenOnce(): Promise<string | null> {
+    if (!this.refreshInFlight) {
+      this.refreshInFlight = this.performRefresh().finally(() => {
+        this.refreshInFlight = null;
+      });
+    }
+    return this.refreshInFlight;
+  }
+
+  /** Current token, refreshed first if it has expired. Used where no 401 retry is possible (SignalR). */
+  async getValidToken(): Promise<string | null> {
+    const token = this.getToken();
+    if (!token) return null;
+    return this.isTokenExpired(token) ? this.refreshTokenOnce() : token;
+  }
+
+  private async performRefresh(): Promise<string | null> {
+    const refreshToken = localStorage.getItem(REFRESH_KEY);
+    if (!refreshToken) {
+      this.logout();
+      return null;
+    }
+
     try {
-      const refreshToken = localStorage.getItem(REFRESH_KEY);
       const res = await firstValueFrom(
         this.http.post<LoginResponse>(`${this.baseUrl}/Auth/RefreshToken`, { refreshToken })
       );
       this.storeSession(res, this.buildUserFromToken(res.accessToken, this._user()?.email ?? ''));
+      return res.accessToken;
     } catch (err) {
       console.error('[AuthService] refresh error:', err);
       this.logout();
+      return null;
     }
+  }
+
+  private isTokenExpired(token: string): boolean {
+    const exp = Number(this.decodeTokenClaims(token)['exp']);
+    if (!exp) return false;
+    // Treat "about to expire" as expired so a request can't die in flight.
+    return Date.now() >= exp * 1000 - EXPIRY_SKEW_MS;
   }
 
   private buildUserFromToken(accessToken: string, fallbackEmail: string): User {

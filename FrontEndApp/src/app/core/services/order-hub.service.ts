@@ -47,7 +47,9 @@ export class OrderHubService {
     if (!this.connection) {
       this.connection = new signalR.HubConnectionBuilder()
         .withUrl(environment.orderHub, {
-          accessTokenFactory: () => this.authService.getToken() ?? '',
+          // SignalR bypasses HttpClient, so there's no 401-retry here — hand it a token that is
+          // refreshed up front if expired. Called again on every automatic reconnect.
+          accessTokenFactory: async () => (await this.authService.getValidToken()) ?? '',
           withCredentials: false,
         })
         .withAutomaticReconnect()
